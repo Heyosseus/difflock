@@ -11,6 +11,8 @@ use Difflock\Migration\Rules\DropTableRule;
 use Difflock\Migration\Rules\ForeignKeyRule;
 use Difflock\Migration\Rules\LargeTableRule;
 use Difflock\Migration\Rules\RenameColumnRule;
+use Difflock\Migration\Rules\SensitiveColumnRule;
+use Difflock\Migration\Rules\UnindexedForeignKeyRule;
 
 return [
 
@@ -113,7 +115,12 @@ return [
 
     'snapshot' => [
         'defaults' => env('DIFFLOCK_SNAPSHOT_DEFAULTS', true),
-        'comments' => env('DIFFLOCK_SNAPSHOT_COMMENTS', true),
+
+        // Comments are off by default, and the reason is that they buy nothing.
+        // Difflock never compares them, so recording them cannot detect any drift —
+        // it only puts free text somebody wrote for colleagues into a committed
+        // file. Defaults at least earn their place; comments do not.
+        'comments' => env('DIFFLOCK_SNAPSHOT_COMMENTS', false),
     ],
 
     /*
@@ -215,6 +222,8 @@ return [
         AddIndexRule::class,
         DropIndexRule::class,
         ForeignKeyRule::class,
+        UnindexedForeignKeyRule::class,
+        SensitiveColumnRule::class,
         LargeTableRule::class,
     ],
 

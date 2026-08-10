@@ -41,6 +41,12 @@ final class DropTableRule implements MigrationRule
         $explanation = 'Dropping a table destroys every row in it. A `down()` that recreates the '
             .'table restores the structure and none of the data.';
 
+        if ($table !== null && $this->looksLikeAnAuditTrail($table)) {
+            $explanation .= ' The name suggests this table is an audit trail. Destroying one is not '
+                .'the same as destroying a cache: the records may be the only account of who did what, '
+                .'and may be subject to a retention obligation that outlives the feature that wrote them.';
+        }
+
         if ($size !== null) {
             $explanation .= ' This table currently holds '.$size.'.';
         }
@@ -64,6 +70,26 @@ final class DropTableRule implements MigrationRule
             destructive: true,
             reversible: false,
         )];
+    }
+
+    /**
+     * Whether the name suggests a record of what happened rather than working data.
+     *
+     * Names only — Difflock cannot read intent, and a table called `activity_log`
+     * might hold nothing anybody needs. The finding is already critical either way;
+     * this adds a sentence, never a level, so a false positive costs a line of prose
+     * rather than a blocked deploy.
+     */
+    private function looksLikeAnAuditTrail(string $table): bool
+    {
+        foreach (['audit', 'activity_log', 'activity_logs', 'auditing'] as $needle) {
+            if (str_contains($table, $needle)) {
+                return true;
+            }
+        }
+
+        return str_ends_with($table, '_log') || str_ends_with($table, '_logs')
+            || str_ends_with($table, '_history') || str_ends_with($table, '_journal');
     }
 
     private function everything(MigrationContext $context): MigrationFinding

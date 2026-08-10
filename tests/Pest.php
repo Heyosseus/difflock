@@ -76,6 +76,29 @@ function contextFor(
     );
 }
 
+/**
+ * A context whose database reports a particular driver — or none at all.
+ *
+ * Engine-aware rules need this: `unindexed-foreign-key` must say nothing on MySQL,
+ * something specific on PostgreSQL, and something hedged when it cannot tell.
+ *
+ * @param  list<Table>  $tables
+ * @param  array<string, int>  $rows
+ */
+function driverContext(string $body, ?string $driver, array $tables = [], array $rows = []): MigrationContext
+{
+    $parsed = parseUp($body, 'x');
+
+    return new MigrationContext(
+        $parsed,
+        $parsed->statements[0],
+        new DatabaseContext(
+            schema: new DatabaseSchema($tables, $driver, 'main'),
+            statistics: new FixedTableStatistics($rows),
+        ),
+    );
+}
+
 /** A context built from one migration body in one call, which is what most rule tests want. */
 function ruleContext(string $body, array $tables = [], array $rows = [], string $down = 'x'): MigrationContext
 {
