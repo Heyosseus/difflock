@@ -7,6 +7,7 @@ namespace Difflock;
 use Difflock\Console\Commands\CheckCommand;
 use Difflock\Console\Commands\DiffCommand;
 use Difflock\Console\Commands\DifflockCommand;
+use Difflock\Console\Commands\DoctorCommand;
 use Difflock\Console\Commands\LintCommand;
 use Difflock\Console\Commands\MigrateCommand;
 use Difflock\Contracts\MigrationAnalyzer;
@@ -109,15 +110,10 @@ final class DifflockServiceProvider extends ServiceProvider
             $this->migrationPaths($app),
         ));
 
-        $this->app->bind(MigrationAnalyzer::class, fn (Application $app): MigrationAnalyzer => new RuleMigrationAnalyzer(
-            $app->make(MigrationLocator::class),
-            $app->make(MigrationParser::class),
-            $app->make(Filesystem::class),
-            $app->make(DatabaseContextFactory::class),
-            $app->make(RuleRegistry::class)->resolve($app),
-            IgnoreList::fromConfig($this->section($app, 'difflock.ignore')),
-            $app->make(AcceptedFindings::class),
-        ));
+        $this->app->bind(
+            MigrationAnalyzer::class,
+            fn (Application $app): MigrationAnalyzer => $this->analyzer($app, $app->make(DatabaseContextFactory::class)),
+        );
 
         $this->app->bind(AcceptedFindings::class, fn (Application $app): AcceptedFindings => new AcceptedFindings(
             $app->make(Filesystem::class),
@@ -138,12 +134,21 @@ final class DifflockServiceProvider extends ServiceProvider
             $app->make(ProtectionPolicy::class),
         ));
 
-        $this->app->bind(Checkup::class, fn (Application $app): Checkup => new Checkup(
-            $app->make(SchemaInspector::class),
-            $app->make(SchemaDiffer::class),
-            $app->make(MigrationAnalyzer::class),
-            $app->make(Baseline::class),
-        ));
+        // Checkup and the analyzer it drives are given the *same* context factory, so
+        // the schema is read once for the whole run rather than once for drift and
+        // again for the rules. Built here rather than resolved twice, because the
+        // factory is deliberately transient — its memo must not outlive the run.
+        $this->app->bind(Checkup::class, function (Application $app): Checkup {
+            $contexts = $app->make(DatabaseContextFactory::class);
+
+            return new Checkup(
+                $app->make(SchemaInspector::class),
+                $app->make(SchemaDiffer::class),
+                $this->analyzer($app, $contexts),
+                $app->make(Baseline::class),
+                $contexts,
+            );
+        });
 
         $this->app->bind(Difflock::class, fn (Application $app): Difflock => new Difflock(
             $app->make(SchemaInspector::class),
@@ -165,6 +170,7 @@ final class DifflockServiceProvider extends ServiceProvider
             DifflockCommand::class,
             CheckCommand::class,
             DiffCommand::class,
+            DoctorCommand::class,
             LintCommand::class,
             MigrateCommand::class,
         ]);
@@ -172,6 +178,25 @@ final class DifflockServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/difflock.php' => $this->app->configPath('difflock.php'),
         ], 'difflock-config');
+    }
+
+    /**
+     * An analyzer wired to a particular context factory.
+     *
+     * Taking the factory as an argument rather than resolving it is what lets a
+     * caller share one schema reading across everything it drives.
+     */
+    private function analyzer(Application $app, DatabaseContextFactory $contexts): MigrationAnalyzer
+    {
+        return new RuleMigrationAnalyzer(
+            $app->make(MigrationLocator::class),
+            $app->make(MigrationParser::class),
+            $app->make(Filesystem::class),
+            $contexts,
+            $app->make(RuleRegistry::class)->resolve($app),
+            IgnoreList::fromConfig($this->section($app, 'difflock.ignore')),
+            $app->make(AcceptedFindings::class),
+        );
     }
 
     /**

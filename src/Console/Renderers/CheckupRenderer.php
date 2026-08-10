@@ -48,6 +48,53 @@ final readonly class CheckupRenderer
         $output->writeln('');
     }
 
+    /**
+     * The overview: the same verdict, without reprinting the whole analysis.
+     *
+     * `difflock` used to render the full findings list, which on a real application
+     * meant the two summary lines a reader actually came for were buried under
+     * everything else. Here it shows the summary, any drift, and only the worst level
+     * of finding — then says where the rest are.
+     */
+    public function overview(OutputInterface $output, CheckupResult $result): void
+    {
+        $this->schemaLine($output, $result);
+        $this->migrationLine($output, $result);
+
+        $output->writeln('');
+
+        if ($result->drifted() && $result->drift instanceof SchemaDiff) {
+            $output->writeln('  <options=bold>Schema drift</>');
+            $output->writeln('');
+
+            $this->diffs->render($output, $result->drift);
+        }
+
+        $summary = $result->report->summary();
+
+        if ($summary->total > 0) {
+            $worst = $summary->highest;
+
+            $this->reports->render($output, $result->report->only(atLeast: $worst));
+
+            $remaining = $summary->total - $summary->count($worst);
+
+            if ($remaining > 0) {
+                $output->writeln(
+                    '  <fg=gray>'.$remaining.' finding'.($remaining === 1 ? '' : 's').' below '
+                        .$worst->label().' not shown — php artisan difflock:lint</>',
+                );
+                $output->writeln('');
+            }
+        }
+
+        $output->writeln($result->failed()
+            ? '  <fg=red;options=bold>Result: FAIL</>'
+            : '  <fg=green;options=bold>Result: PASS</>');
+
+        $output->writeln('');
+    }
+
     private function schemaLine(OutputInterface $output, CheckupResult $result): void
     {
         $output->writeln('  <options=bold>Schema</>');
