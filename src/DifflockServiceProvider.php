@@ -15,6 +15,7 @@ use Difflock\Contracts\SchemaDiffer;
 use Difflock\Contracts\SchemaInspector;
 use Difflock\Database\DatabaseContextFactory;
 use Difflock\Diff\SchemaComparator;
+use Difflock\Migration\AcceptedFindings;
 use Difflock\Migration\IgnoreList;
 use Difflock\Migration\MigrationLocator;
 use Difflock\Migration\Parser\MigrationParser;
@@ -115,6 +116,12 @@ final class DifflockServiceProvider extends ServiceProvider
             $app->make(DatabaseContextFactory::class),
             $app->make(RuleRegistry::class)->resolve($app),
             IgnoreList::fromConfig($this->section($app, 'difflock.ignore')),
+            $app->make(AcceptedFindings::class),
+        ));
+
+        $this->app->bind(AcceptedFindings::class, fn (Application $app): AcceptedFindings => new AcceptedFindings(
+            $app->make(Filesystem::class),
+            $this->acceptedPath($app),
         ));
 
         $this->app->bind(ProtectionPolicy::class, function (Application $app): ProtectionPolicy {
@@ -225,6 +232,15 @@ final class DifflockServiceProvider extends ServiceProvider
         return is_string($path) && $path !== ''
             ? $path
             : $app->databasePath('difflock/schema.json');
+    }
+
+    private function acceptedPath(Application $app): string
+    {
+        $path = $app->make(Repository::class)->get('difflock.accepted');
+
+        return is_string($path) && $path !== ''
+            ? $path
+            : $app->databasePath('difflock/accepted.json');
     }
 
     private function connection(Application $app): ?string

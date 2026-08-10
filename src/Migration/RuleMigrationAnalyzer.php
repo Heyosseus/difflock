@@ -36,6 +36,7 @@ final readonly class RuleMigrationAnalyzer implements MigrationAnalyzer
         private DatabaseContextFactory $contexts,
         private array $rules,
         private IgnoreList $ignore,
+        private ?AcceptedFindings $accepted = null,
     ) {}
 
     public function analyze(MigrationScope $scope = MigrationScope::Pending, array $paths = []): MigrationReport
@@ -44,6 +45,7 @@ final readonly class RuleMigrationAnalyzer implements MigrationAnalyzer
 
         $migrations = [];
         $findings = [];
+        $accepted = [];
 
         foreach ($this->locator->locate($scope, $paths) as $file) {
             $parsed = $this->parse($file);
@@ -51,12 +53,26 @@ final readonly class RuleMigrationAnalyzer implements MigrationAnalyzer
 
             foreach ($parsed->statements as $statement) {
                 foreach ($this->run($parsed, $statement, $database) as $finding) {
+                    // Accepted findings are set aside, not discarded. The report still
+                    // counts them, and `--accept` needs them to rewrite the file
+                    // without losing what somebody already decided to live with.
+                    if ($this->accepted?->accepts($finding) === true) {
+                        $accepted[] = $finding;
+
+                        continue;
+                    }
+
                     $findings[] = $finding;
                 }
             }
         }
 
-        return new MigrationReport($migrations, $this->sort($findings), $database->available);
+        return new MigrationReport(
+            $migrations,
+            $this->sort($findings),
+            $database->available,
+            $this->sort($accepted),
+        );
     }
 
     private function parse(MigrationFile $file): ParsedMigration

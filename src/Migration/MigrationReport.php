@@ -25,12 +25,25 @@ final readonly class MigrationReport
      * @param  list<MigrationFinding>  $findings  Ordered most serious first.
      * @param  bool  $databaseAvailable  False when the analysis ran without a reachable database,
      *                                   so every size-dependent judgement was made blind.
+     * @param  list<MigrationFinding>  $accepted  Findings suppressed by the accepted-findings file.
+     *                                            Counted and reported, never silently dropped.
      */
     public function __construct(
         public array $migrations = [],
         public array $findings = [],
         public bool $databaseAvailable = true,
+        public array $accepted = [],
     ) {}
+
+    /**
+     * Everything the rules found, accepted or not — what `--accept` records.
+     *
+     * @return list<MigrationFinding>
+     */
+    public function allFindings(): array
+    {
+        return [...$this->findings, ...$this->accepted];
+    }
 
     public function summary(): RiskSummary
     {
@@ -93,6 +106,7 @@ final readonly class MigrationReport
             'risk' => $summary->highest->value,
             'counts' => $summary->counts,
             'database_available' => $this->databaseAvailable,
+            'accepted' => count($this->accepted),
             'warnings' => $this->warnings(),
             'findings' => array_map(
                 static fn (MigrationFinding $finding): array => $finding->toArray(),

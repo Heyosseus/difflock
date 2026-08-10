@@ -64,6 +64,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Accepted Findings
+    |--------------------------------------------------------------------------
+    |
+    | Where the findings you have looked at and decided to live with are kept.
+    |
+    | Adding this package to an existing codebase surfaces every risky migration
+    | ever written, all at once, about code that already shipped. Record them:
+    |
+    |     php artisan difflock:lint --all --accept
+    |
+    | Commit the file, and from then on the gate fails only on findings that are
+    | new. The backlog stays visible and counted at the bottom of every report;
+    | it just stops blocking work it cannot retroactively prevent. Delete a line
+    | to bring a finding back.
+    |
+    */
+
+    'accepted' => env('DIFFLOCK_ACCEPTED', database_path('difflock/accepted.json')),
+
+    /*
+    |--------------------------------------------------------------------------
     | What the Baseline Records
     |--------------------------------------------------------------------------
     |

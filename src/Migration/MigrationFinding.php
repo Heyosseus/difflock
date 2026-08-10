@@ -50,6 +50,28 @@ final readonly class MigrationFinding
     ) {}
 
     /**
+     * A stable identity for this finding, for the accepted-findings file.
+     *
+     * Deliberately built from what the finding is *about* — the rule, the migration,
+     * the table and the subject — and not from its line number, its risk level or
+     * its wording. A finding must keep its identity when the file is reformatted,
+     * when a rule is retuned, or when the message is reworded, otherwise every such
+     * change resurrects the whole backlog and the file stops being trusted.
+     *
+     * It is readable rather than hashed so that the accepted file reviews like a
+     * list of decisions instead of a wall of checksums.
+     */
+    public function fingerprint(): string
+    {
+        return implode('|', [
+            $this->rule,
+            $this->migration,
+            $this->table ?? '-',
+            $this->subject ?? '-',
+        ]);
+    }
+
+    /**
      * The finding as it appears in `--format=json`.
      *
      * The shape is documented and stable: `rule`, `risk`, `table`, `destructive` and

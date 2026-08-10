@@ -184,6 +184,6 @@ describe('difflock:migrate', function (): void {
         [$exit, $output] = runCommand('difflock:migrate', ['--path' => ['/definitely/not/a/directory'], '--realpath' => true]);
 
         expect($exit)->toBe(0)
-            ->and($output)->toContain('No migrations were in scope');
+            ->and($output)->toContain('No migrations were found to analyse');
     });
 });

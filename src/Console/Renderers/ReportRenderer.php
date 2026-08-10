@@ -23,7 +23,16 @@ final class ReportRenderer
     public function render(OutputInterface $output, MigrationReport $report): void
     {
         if ($report->migrations === []) {
-            $output->writeln('  <fg=gray>No migrations were in scope.</>');
+            $output->writeln('  <fg=gray>No migrations were found to analyse.</>');
+
+            foreach (Text::wrap(
+                'Difflock looks in the application\'s migration paths. Point it somewhere else with '
+                    .'--path, or add a path to `migrations.paths` in config/difflock.php.',
+                '  ',
+            ) as $line) {
+                $output->writeln('<fg=gray>'.$line.'</>');
+            }
+
             $output->writeln('');
 
             return;
@@ -109,6 +118,16 @@ final class ReportRenderer
 
         $output->writeln('');
         $output->writeln('  <fg=gray>'.$analyzed.' migration'.($analyzed === 1 ? '' : 's').' analysed.</>');
+
+        // Never silent: an accepted backlog that nobody can see is a backlog that
+        // quietly becomes permanent.
+        if ($report->accepted !== []) {
+            $output->writeln(
+                '  <fg=gray>'.count($report->accepted).' previously accepted finding'
+                    .(count($report->accepted) === 1 ? '' : 's').' not shown.</>',
+            );
+        }
+
         $output->writeln('');
     }
 
