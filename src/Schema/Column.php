@@ -37,6 +37,38 @@ final readonly class Column
     ) {}
 
     /**
+     * The same column with the fields that carry free text dropped.
+     *
+     * A default and a comment are the only two places in a schema where somebody's
+     * own words end up — an internal URL in a default, a note to a colleague in a
+     * comment — so they are the only two a snapshot can be asked to leave out.
+     *
+     * Dropping a default costs something real: {@see self::comparable()} leaves out
+     * fields that are null, so a snapshot recorded without defaults no longer
+     * notices a default changing. That is the trade, and the configuration says so.
+     */
+    public function redacted(bool $keepDefault, bool $keepComment): self
+    {
+        if ($keepDefault && $keepComment) {
+            return $this;
+        }
+
+        return new self(
+            name: $this->name,
+            type: $this->type,
+            definition: $this->definition,
+            nullable: $this->nullable,
+            default: $keepDefault ? $this->default : null,
+            autoIncrement: $this->autoIncrement,
+            unsigned: $this->unsigned,
+            length: $this->length,
+            precision: $this->precision,
+            scale: $this->scale,
+            comment: $keepComment ? $this->comment : null,
+        );
+    }
+
+    /**
      * The column as it reads in a diff: `VARCHAR(255) NULL DEFAULT 'x'`.
      */
     public function render(): string

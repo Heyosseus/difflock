@@ -25,6 +25,7 @@ use Difflock\Protection\ProtectionPolicy;
 use Difflock\Risk\RiskLevel;
 use Difflock\Schema\Baseline;
 use Difflock\Schema\ConnectionSchemaInspector;
+use Difflock\Schema\ScopedSchemaInspector;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\ConnectionResolverInterface;
@@ -49,9 +50,16 @@ final class DifflockServiceProvider extends ServiceProvider
         // shared inspector in a long-running worker, or across two commands in one
         // process, answers the second question with the schema from the first, and a
         // drift check built on a stale reading reports no drift.
-        $this->app->bind(SchemaInspector::class, fn (Application $app): SchemaInspector => new ConnectionSchemaInspector(
-            $app->make(ConnectionResolverInterface::class),
-            $this->connection($app),
+        //
+        // The scope decorator wraps every inspection, so an ignored table is absent
+        // from the diff, from the baseline that gets committed, and from what the
+        // rules can see — one decision, applied once.
+        $this->app->bind(SchemaInspector::class, fn (Application $app): SchemaInspector => new ScopedSchemaInspector(
+            new ConnectionSchemaInspector(
+                $app->make(ConnectionResolverInterface::class),
+                $this->connection($app),
+            ),
+            IgnoreList::fromConfig($this->section($app, 'difflock.ignore'))->tables,
         ));
 
         $this->app->bind(SchemaDiffer::class, SchemaComparator::class);
@@ -77,10 +85,16 @@ final class DifflockServiceProvider extends ServiceProvider
             $this->connection($app),
         ));
 
-        $this->app->bind(Baseline::class, fn (Application $app): Baseline => new Baseline(
-            $app->make(Filesystem::class),
-            $this->baselinePath($app),
-        ));
+        $this->app->bind(Baseline::class, function (Application $app): Baseline {
+            $config = $app->make(Repository::class);
+
+            return new Baseline(
+                $app->make(Filesystem::class),
+                $this->baselinePath($app),
+                $config->get('difflock.snapshot.defaults') !== false,
+                $config->get('difflock.snapshot.comments') !== false,
+            );
+        });
 
         // Seeded from configuration here, and open to Difflock::rule() afterwards.
         // The analyzer resolves the registry when it runs rather than when it is

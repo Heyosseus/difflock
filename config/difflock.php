@@ -64,6 +64,39 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | What the Baseline Records
+    |--------------------------------------------------------------------------
+    |
+    | The baseline is the one file Difflock publishes: you are told to commit
+    | it, so it is worth knowing what goes in. It holds structure only — table,
+    | column and index names, types, nullability, defaults, comments and
+    | foreign keys. It never holds a single row of data, and never a credential.
+    |
+    | For a private repository that is close to no new exposure: your migrations
+    | already describe the same structure. Two things are worth a thought before
+    | committing it anyway. It records the schema as it *is*, including anything
+    | created outside a migration — that is the point of drift detection, and it
+    | means the file can say more than your migrations do. And if the repository
+    | is ever public, it hands a reader the exact shape of every table.
+    |
+    | Defaults and comments are the only fields that carry free text, so they
+    | are the only ones you can decline to record. Turning defaults off means a
+    | default changing is no longer drift; nothing else changes, and the rules,
+    | which read the live database rather than this file, are unaffected.
+    |
+    | To exclude whole tables, use 'ignore.tables' below. To keep the file out
+    | of git entirely, add it to .gitignore and record it in CI instead — you
+    | keep "did this branch change the schema" and lose "did production drift".
+    |
+    */
+
+    'snapshot' => [
+        'defaults' => env('DIFFLOCK_SNAPSHOT_DEFAULTS', true),
+        'comments' => env('DIFFLOCK_SNAPSHOT_COMMENTS', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Risk Threshold
     |--------------------------------------------------------------------------
     |
@@ -175,6 +208,11 @@ return [
     | Filtering happens after the rules have run, so the ignore list can only
     | ever remove findings — a mistake in it cannot make a rule report
     | something it would not otherwise have reported.
+    |
+    | 'tables' goes further than the other two: an ignored table is left out of
+    | schema inspection altogether, so it appears in no diff and is never
+    | written to the committed baseline. That is the control to reach for when
+    | a table's very structure is something you would rather not publish.
     |
     */
 

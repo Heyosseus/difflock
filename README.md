@@ -193,6 +193,31 @@ Drift means "the database no longer matches what we agreed on". Difflock makes t
 
 The baseline is a versioned JSON file. A baseline that exists and cannot be read is an **error**, not an empty schema: exit code 2, never a green tick.
 
+### What you are committing
+
+The baseline is the one file Difflock asks you to put in git, so it is worth knowing what goes in it. **Structure only** — table, column and index names, types, nullability, defaults, comments and foreign keys. Never a row of data, never a credential.
+
+For a private repository that is close to no new exposure: your `database/migrations` directory already describes the same structure. Two things deserve a thought anyway.
+
+- It records the schema as it **is**, including anything created outside a migration. That is the point of drift detection, and it means the file can say more than your migrations do.
+- If the repository is ever public, it hands a reader the exact shape of every table — which columns are unique, which are indexed, how your auth tables are built. Not a vulnerability, but it saves an attacker the reconnaissance.
+
+Three controls, in order of bluntness:
+
+```php
+// config/difflock.php
+
+// 1. Exclude tables entirely — they appear in no diff and reach no file.
+'ignore' => ['tables' => ['oauth_*', 'personal_access_tokens']],
+
+// 2. Or keep the tables and drop the only two fields that carry free text.
+'snapshot' => ['defaults' => false, 'comments' => false],
+```
+
+3. Or do not commit it at all: `.gitignore` the file and record the baseline in CI from a freshly-migrated database. You keep *"did this branch change the schema"* and lose *"did production drift from what we agreed"* — a real trade, not a free win.
+
+Turning `snapshot.defaults` off costs one thing and nothing else: a default changing stops counting as drift. It produces no false differences, because the comparator only compares fields both sides reported, and it does not affect the rules, which read the live database rather than this file.
+
 ## Migration linting
 
 ```bash

@@ -84,6 +84,25 @@ final readonly class Table
         return null;
     }
 
+    /** The same table with its columns' free-text fields dropped. */
+    public function redacted(bool $keepDefaults, bool $keepComments): self
+    {
+        if ($keepDefaults && $keepComments) {
+            return $this;
+        }
+
+        return new self(
+            name: $this->name,
+            columns: array_values(array_map(
+                static fn (Column $column): Column => $column->redacted($keepDefaults, $keepComments),
+                $this->columns,
+            )),
+            indexes: array_values($this->indexes),
+            foreignKeys: array_values($this->foreignKeys),
+            comment: $keepComments ? $this->comment : null,
+        );
+    }
+
     /**
      * @return array<string, mixed>
      */

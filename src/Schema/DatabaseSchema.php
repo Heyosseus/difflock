@@ -78,6 +78,29 @@ final readonly class DatabaseSchema
     }
 
     /**
+     * The same schema with column defaults and comments dropped.
+     *
+     * Used when recording a baseline that will be committed. Both fields are kept by
+     * default — they are part of the schema and worth diffing — and an application
+     * that would rather not have them in git can say so.
+     */
+    public function redacted(bool $keepDefaults, bool $keepComments): self
+    {
+        if ($keepDefaults && $keepComments) {
+            return $this;
+        }
+
+        return new self(
+            array_values(array_map(
+                static fn (Table $table): Table => $table->redacted($keepDefaults, $keepComments),
+                $this->tables,
+            )),
+            $this->driver,
+            $this->connection,
+        );
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
