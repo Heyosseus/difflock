@@ -53,11 +53,18 @@ final class ReportRenderer
     }
 
     /**
-     * Findings bucketed by rule and risk, most serious first.
+     * Findings bucketed by rule, risk and the prose they carry, most serious first.
      *
      * Risk is part of the key because one rule legitimately reports at several
      * levels — an index on an empty table and the same index on eight million rows
      * are not the same finding and should not share a heading.
+     *
+     * The explanation is part of the key too, and that is what makes the grouping
+     * work. `foreign-key` reports both cascading deletes and dropped constraints at
+     * high, with different prose; keying on the rule alone put them in one bucket
+     * that was no longer uniform, so a hundred identical cascade explanations went
+     * back to being printed one by one. Keyed on the prose, every bucket is uniform
+     * by construction and can always print its explanation once.
      *
      * @param  list<MigrationFinding>  $findings
      * @return list<list<MigrationFinding>>
@@ -67,7 +74,18 @@ final class ReportRenderer
         $groups = [];
 
         foreach ($findings as $finding) {
-            $groups[$finding->risk->value.'|'.$finding->rule][] = $finding;
+            // The prose goes into the key verbatim rather than hashed: a run holds a
+            // few hundred findings, so the keys cost nothing, and a hash here would
+            // be a digest used for grouping that reads like a digest used for
+            // security.
+            $key = implode("\0", [
+                $finding->risk->value,
+                $finding->rule,
+                $finding->explanation,
+                $finding->suggestion ?? '',
+            ]);
+
+            $groups[$key][] = $finding;
         }
 
         // The findings arrive sorted worst-first, so the groups are already in the
@@ -92,39 +110,10 @@ final class ReportRenderer
 
         $output->writeln('');
 
-        if ($this->uniform($group)) {
-            $this->prose($output, $first, '    ');
-            $this->occurrences($output, $group, $verbose);
-        } else {
-            $shown = $verbose ? $group : array_slice($group, 0, self::PREVIEW);
-
-            foreach ($shown as $finding) {
-                $output->writeln('    <options=bold>'.$finding->message.'</>');
-                $output->writeln('      <fg=gray>'.$this->where($finding).'</>');
-                $this->prose($output, $finding, '      ');
-            }
-
-            $this->remainder($output, $count - count($shown), $first->rule);
-        }
+        $this->prose($output, $first, '    ');
+        $this->occurrences($output, $group, $verbose);
 
         $output->writeln('');
-    }
-
-    /**
-     * Whether every finding in the group says the same thing, so it need only be
-     * said once.
-     *
-     * @param  list<MigrationFinding>  $group
-     */
-    private function uniform(array $group): bool
-    {
-        foreach ($group as $finding) {
-            if ($finding->explanation !== $group[0]->explanation || $finding->suggestion !== $group[0]->suggestion) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private function prose(OutputInterface $output, MigrationFinding $finding, string $indent): void
