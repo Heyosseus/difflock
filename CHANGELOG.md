@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Requirements
+
+- PHP 8.3+, Laravel 12 or 13. Laravel 11 is not supported: every one of its releases is covered by a security advisory, so Composer's default policy refuses to install them.
+
 ### Added
 
 - **Schema introspection** across MySQL, MariaDB, PostgreSQL and SQLite through Laravel's own schema builder — no Doctrine DBAL. Normalised, deterministic value objects for tables, columns, indexes and foreign keys, with every field a driver did not report left as `null` rather than invented.

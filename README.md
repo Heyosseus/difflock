@@ -129,8 +129,10 @@ php artisan vendor:publish --tag=difflock-config
 **Requirements**
 
 - PHP 8.3+
-- Laravel 11, 12 or 13
+- Laravel 12 or 13
 - MySQL, MariaDB, PostgreSQL or SQLite
+
+Laravel 11 is deliberately not supported. Every one of its releases is now covered by a security advisory, so Composer's default policy refuses to install any of them — claiming support for a major nobody can install would be a promise the package cannot keep.
 
 No Doctrine DBAL. Laravel 11 moved schema introspection into the framework, so Difflock uses that and carries no driver-specific SQL of its own beyond one cheap metadata query for table sizes.
 

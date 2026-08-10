@@ -20,10 +20,12 @@ jobs:
         # The package is proven against its supported peers. Laravel 13 needs
         # Testbench 11, which needs PHP 8.4, so the 8.3 legs stop at Laravel 12 —
         # which is exactly the combination the composer constraints allow.
+        #
+        # Laravel 11 is not here, and not supported: every one of its releases is
+        # now covered by a security advisory, so Composer's default policy refuses
+        # to install any of them. Claiming support for a major nobody can install
+        # would be a promise the package cannot keep.
         include:
-          - php: '8.3'
-            laravel: '11.*'
-            testbench: '9.*'
           - php: '8.3'
             laravel: '12.*'
             testbench: '10.*'
