@@ -84,7 +84,7 @@ final class DifflockCommand extends Command
 
         Banner::render($this->output);
 
-        $renderer->render($this->output, $result);
+        $renderer->overview($this->output, $result);
 
         foreach (Text::wrap(
             'difflock:diff compares schemas · difflock:lint analyses migrations · '
