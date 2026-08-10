@@ -80,8 +80,14 @@ it('estimates row counts and table sizes from database metadata', function (): v
 
     $statistics = new ConnectionTableStatistics(app(ConnectionResolverInterface::class));
 
+    // A freshly created InnoDB table can report a null data_length until the server
+    // has got round to it, and null is a legitimate answer — "this driver will not
+    // say" — which the rules read as unknown. Asserting a number here would be
+    // asserting something Difflock deliberately does not promise.
+    $bytes = $statistics->bytes('difflock_customers');
+
     expect($statistics->approximate())->toBeTrue()
-        ->and($statistics->bytes('difflock_customers'))->toBeGreaterThanOrEqual(0);
+        ->and($bytes === null || $bytes >= 0)->toBeTrue();
 
     // The row count is an estimate the server may not have refreshed yet, so this
     // asserts only that the driver answered with something usable — never that the
