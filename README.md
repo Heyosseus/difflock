@@ -149,6 +149,21 @@ php artisan difflock:lint
 php artisan difflock:check --ci
 ```
 
+### Adding it to a codebase that already exists
+
+Point Difflock at a mature project and it will find every risky migration ever written — about code that already shipped. On a real 170-migration application it reported **199 findings, 124 of them high**. Nobody acts on 199 findings, and a build that is red on day one gets switched off by the end of the week.
+
+So accept the backlog first:
+
+```bash
+php artisan difflock:lint --all --accept   # ✓ Accepted 193 findings
+php artisan difflock:lint                  # passes — and fails on the 194th
+```
+
+Commit `database/difflock/accepted.json`. Every report still counts what is in it (`199 previously accepted findings not shown`), so the backlog stays visible instead of quietly becoming permanent — and a genuinely new `DROP TABLE` still turns the build red immediately. Delete a line from the file to bring a finding back.
+
+Findings are matched on what they are *about* — rule, migration, table, subject — never on line numbers or wording, so reformatting a migration doesn't resurrect its findings.
+
 ## Schema diff
 
 `difflock:diff` compares **two schemas that were both actually observed**.
@@ -223,10 +238,13 @@ Turning `snapshot.defaults` off costs one thing and nothing else: a default chan
 ```bash
 php artisan difflock:lint            # pending migrations
 php artisan difflock:lint --all      # every migration file
+php artisan difflock:lint --accept   # record what it found as accepted
 php artisan difflock:lint --path=database/migrations/legacy
 ```
 
 Only pending migrations are analysed by default. A migration that has already run cannot be made safer by a finding, and a build that fails over a drop committed two years ago is a build nobody keeps green.
+
+When nothing is pending — which is the normal state of a machine that is up to date — it audits every migration instead of printing nothing, and says that is what it did.
 
 ### Built-in rules
 
