@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Difflock\Migration;
 
+use Difflock\Contracts\IndexStatistics;
 use Difflock\Contracts\TableStatistics;
+use Difflock\Database\FixedIndexStatistics;
 use Difflock\Schema\DatabaseSchema;
 use Difflock\Schema\Table;
 
@@ -34,7 +36,25 @@ final readonly class DatabaseContext
         public string $environment = 'unknown',
         public ?string $version = null,
         public bool $available = true,
+        public IndexStatistics $indexes = new FixedIndexStatistics,
     ) {}
+
+    /**
+     * How many times the engine has read this index, or null when it will not say.
+     *
+     * Null is "unknown", never zero — the distinction is load-bearing for the
+     * drop-index rule, which would otherwise call a heavily used index unused.
+     */
+    public function indexScans(?string $table, string $index): ?int
+    {
+        return $table === null || ! $this->available ? null : $this->indexes->scans($table, $index);
+    }
+
+    /** How long the engine's index counters have been accumulating, in days. */
+    public function indexObservedDays(): ?int
+    {
+        return $this->available ? $this->indexes->observedDays() : null;
+    }
 
     public function driver(): ?string
     {

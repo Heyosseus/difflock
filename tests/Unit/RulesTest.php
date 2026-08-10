@@ -483,7 +483,7 @@ describe('drop-index', function (): void {
             ->and($findings[0]->explanation)->toContain('removes a constraint')
             ->and($findings[1]->risk)->toBe(RiskLevel::High)
             ->and($findings[2]->risk)->toBe(RiskLevel::Medium)
-            ->and($findings[2]->explanation)->toContain('no view of your query workload');
+            ->and($findings[2]->explanation)->toContain('would not say how often');
     });
 
     it('is low on a small table', function (): void {

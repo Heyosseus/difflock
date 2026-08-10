@@ -65,6 +65,7 @@ final class DatabaseContextFactory
             environment: $this->environment(),
             version: $this->version(),
             available: true,
+            indexes: new ConnectionIndexStatistics($this->connections, $this->connection),
         );
     }
 
