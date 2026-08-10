@@ -1,0 +1,160 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # The package is proven against its supported peers. Laravel 13 needs
+        # Testbench 11, which needs PHP 8.4, so the 8.3 legs stop at Laravel 12 —
+        # which is exactly the combination the composer constraints allow.
+        include:
+          - php: '8.3'
+            laravel: '11.*'
+            testbench: '9.*'
+          - php: '8.3'
+            laravel: '12.*'
+            testbench: '10.*'
+          - php: '8.4'
+            laravel: '12.*'
+            testbench: '10.*'
+          # Coverage is identical across the matrix, so it is collected once
+          # rather than recomputed on every leg.
+          - php: '8.4'
+            laravel: '13.*'
+            testbench: '11.*'
+            coverage: true
+
+    name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo, pdo_sqlite, sqlite3
+          # PCOV is many times faster than Xdebug for line coverage, which is all
+          # the --min gate needs. Legs that collect none carry no driver at all.
+          coverage: ${{ matrix.coverage && 'pcov' || 'none' }}
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ matrix.php }}-${{ matrix.laravel }}-${{ hashFiles('composer.json') }}
+          restore-keys: |
+            composer-${{ matrix.php }}-${{ matrix.laravel }}-
+            composer-${{ matrix.php }}-
+
+      - name: Install dependencies
+        run: |
+          composer require --dev "laravel/framework:${{ matrix.laravel }}" \
+            "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+          composer update --prefer-dist --no-interaction --no-progress --with-all-dependencies
+
+      - name: Lint
+        run: composer test:lint
+
+      - name: Refactor check
+        run: composer test:refacto
+
+      - name: Static analysis
+        run: composer test:types
+
+      # Single-process on purpose. Pest's type-coverage plugin forks the analysis
+      # across workers that read-modify-write one shared result cache, and when its
+      # non-blocking lock times out it writes anyway — two workers then interleave
+      # the same file and the run dies on a parse error inside the cache rather
+      # than on anything wrong with this package. __PEST_PLUGIN_ENV pins it to one
+      # process; it is read from $_ENV, which PHP only populates when
+      # variables_order contains E, hence the -d.
+      - name: Type coverage
+        run: php -d variables_order=EGPCS vendor/bin/pest --type-coverage --min=100
+        env:
+          __PEST_PLUGIN_ENV: '1'
+
+      - name: Unit tests
+        run: ${{ matrix.coverage && 'composer test:unit' || 'vendor/bin/pest --colors=always' }}
+
+  # The drivers get their own job. What differs between them — whether a length is
+  # reported, whether `unsigned` exists, what a foreign key is called, what the
+  # cheap row-count query is — is independent of the PHP and Laravel versions
+  # above, so a cross product would be legs proving nothing extra.
+  drivers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - driver: mysql
+            image: mysql:8.4
+            port: 3306
+          - driver: mariadb
+            image: mariadb:11
+            port: 3306
+          - driver: pgsql
+            image: postgres:17
+            port: 5432
+
+    name: ${{ matrix.driver }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Start ${{ matrix.driver }}
+        run: |
+          if [ "${{ matrix.driver }}" = "pgsql" ]; then
+            docker run --detach --name db --publish 5432:5432 \
+              --env POSTGRES_DB=difflock \
+              --env POSTGRES_USER=difflock \
+              --env POSTGRES_PASSWORD=secret \
+              ${{ matrix.image }}
+            until docker exec db pg_isready --username difflock --quiet; do sleep 1; done
+          else
+            docker run --detach --name db --publish 3306:3306 \
+              --env MYSQL_DATABASE=difflock \
+              --env MYSQL_USER=difflock \
+              --env MYSQL_PASSWORD=secret \
+              --env MYSQL_ROOT_PASSWORD=secret \
+              ${{ matrix.image }}
+            until docker exec db mariadb-admin ping --silent 2>/dev/null \
+              || docker exec db mysqladmin ping --silent 2>/dev/null; do sleep 2; done
+          fi
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_mysql, pdo_pgsql, pgsql, mysqli
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction --no-progress
+
+      - name: Driver tests
+        run: vendor/bin/pest --colors=always
+        env:
+          DIFFLOCK_DB_DRIVER: ${{ matrix.driver }}
+          DIFFLOCK_DB_HOST: 127.0.0.1
+          DIFFLOCK_DB_PORT: ${{ matrix.port }}
+          DIFFLOCK_DB_DATABASE: difflock
+          DIFFLOCK_DB_USERNAME: difflock
+          DIFFLOCK_DB_PASSWORD: secret

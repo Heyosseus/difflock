@@ -1,0 +1,89 @@
+{
+  "name": "heyosseus/difflock",
+  "description": "Diff, analyze and protect your Laravel database schema. Schema diffing, migration risk linting, and a migration guard that blocks destructive changes before they run.",
+  "keywords": [
+    "laravel",
+    "database",
+    "schema",
+    "diff",
+    "migration",
+    "drift",
+    "safety",
+    "linter",
+    "ci",
+    "static-analysis"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/Heyosseus/difflock",
+  "support": {
+    "issues": "https://github.com/Heyosseus/difflock/issues",
+    "source": "https://github.com/Heyosseus/difflock"
+  },
+  "authors": [
+    {
+      "name": "heyosseus",
+      "email": "ratiruxadzee@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^8.3",
+    "illuminate/console": "^11.0 || ^12.0 || ^13.0",
+    "illuminate/contracts": "^11.0 || ^12.0 || ^13.0",
+    "illuminate/database": "^11.0 || ^12.0 || ^13.0",
+    "illuminate/support": "^11.0 || ^12.0 || ^13.0"
+  },
+  "require-dev": {
+    "larastan/larastan": "^3.0",
+    "laravel/pint": "^1.18",
+    "orchestra/testbench": "^9.5 || ^10.0 || ^11.0",
+    "pestphp/pest": "^3.7 || ^4.0",
+    "pestphp/pest-plugin-laravel": "^3.1 || ^4.0",
+    "pestphp/pest-plugin-type-coverage": "^3.2 || ^4.0",
+    "rector/rector": "^2.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Difflock\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Difflock\\Tests\\": "tests/"
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "config": {
+    "sort-packages": true,
+    "preferred-install": "dist",
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Difflock\\DifflockServiceProvider"
+      ],
+      "aliases": {
+        "Difflock": "Difflock\\Facades\\Difflock"
+      }
+    }
+  },
+  "scripts": {
+    "lint": "pint",
+    "refacto": "rector",
+    "test:lint": "pint --test",
+    "test:refacto": "rector --dry-run",
+    "test:types": "phpstan analyse --ansi --memory-limit=512M",
+    "test:type-coverage": "pest --type-coverage --min=100",
+    "test:unit": "pest --colors=always --coverage --min=90",
+    "test": [
+      "@test:refacto",
+      "@test:lint",
+      "@test:types",
+      "@test:type-coverage",
+      "@test:unit"
+    ]
+  }
+}
