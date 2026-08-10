@@ -196,10 +196,8 @@ final class ConnectionSchemaInspector implements SchemaInspector
      * still returned — dropping them would hide real structure — but a row with no
      * usable name is skipped rather than keyed on an empty string, where it would
      * collide with the next one.
-     *
-     * @param  array<string, mixed>  $row
      */
-    private function name(array $row): ?string
+    private function name(mixed $row): ?string
     {
         $name = $this->string($row, 'name');
 
@@ -207,19 +205,31 @@ final class ConnectionSchemaInspector implements SchemaInspector
     }
 
     /**
-     * @param  array<string, mixed>  $row
+     * Read one field out of a metadata row.
+     *
+     * The four readers below all take `mixed` rather than an array, and it is not
+     * laziness. Laravel annotates the shape of what `getTables()`, `getColumns()`,
+     * `getIndexes()` and `getForeignKeys()` return, and the annotations differ
+     * between framework versions — Laravel 12 describes foreign keys as a plain
+     * `array<int, mixed>` where 13 describes the row shape. Typing these to whatever
+     * one version promises makes the package fail static analysis on another, and
+     * would be believing an annotation about data that is untyped at runtime anyway.
+     *
+     * So each of them checks. A row that is not an array, or a field that is not the
+     * kind of value expected, comes back null or empty, and the caller skips it.
      */
-    private function string(array $row, string $key): ?string
+    private function string(mixed $row, string $key): ?string
     {
+        if (! is_array($row)) {
+            return null;
+        }
+
         $value = $row[$key] ?? null;
 
         return is_scalar($value) ? (string) $value : null;
     }
 
-    /**
-     * @param  array<string, mixed>  $row
-     */
-    private function lower(array $row, string $key): ?string
+    private function lower(mixed $row, string $key): ?string
     {
         $value = $this->string($row, $key);
 
@@ -227,12 +237,11 @@ final class ConnectionSchemaInspector implements SchemaInspector
     }
 
     /**
-     * @param  array<string, mixed>  $row
      * @return list<string>
      */
-    private function strings(array $row, string $key): array
+    private function strings(mixed $row, string $key): array
     {
-        $value = $row[$key] ?? [];
+        $value = is_array($row) ? $row[$key] ?? [] : [];
 
         if (! is_array($value)) {
             return [];
