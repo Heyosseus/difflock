@@ -1,9 +1,9 @@
 # Difflock
 
-[![Latest Version](https://img.shields.io/packagist/v/heyosseys/difflock.svg)](https://packagist.org/packages/heyosseys/difflock)
-[![Total Downloads](https://img.shields.io/packagist/dt/heyosseys/difflock.svg)](https://packagist.org/packages/heyosseys/difflock)
+[![Latest Version](https://img.shields.io/packagist/v/heyosseus/difflock.svg)](https://packagist.org/packages/heyosseus/difflock)
+[![Total Downloads](https://img.shields.io/packagist/dt/heyosseus/difflock.svg)](https://packagist.org/packages/heyosseus/difflock)
 [![Tests](https://img.shields.io/github/actions/workflow/status/Heyosseus/difflock/tests.yml?branch=main&label=tests)](https://github.com/Heyosseus/difflock/actions/workflows/tests.yml)
-[![License](https://img.shields.io/packagist/l/heyosseys/difflock.svg)](https://packagist.org/packages/heyosseys/difflock)
+[![License](https://img.shields.io/packagist/l/heyosseus/difflock.svg)](https://packagist.org/packages/heyosseus/difflock)
 
 **Diff, analyze, and protect your Laravel database schema.**
 
@@ -14,7 +14,7 @@ Diff what changed.  Analyze the risk.  Lock dangerous changes.
 ```
 
 ```bash
-composer require heyosseys/difflock --dev
+composer require heyosseus/difflock --dev
 php artisan difflock:lint
 ```
 
@@ -117,7 +117,7 @@ It is deliberately conservative about what it claims. It will tell you an index 
 ## Installation
 
 ```bash
-composer require heyosseys/difflock --dev
+composer require heyosseus/difflock --dev
 ```
 
 Laravel discovers the package automatically. Publish the config if you want to tune it:
