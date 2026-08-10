@@ -10,6 +10,7 @@ use Difflock\Migration\Rules\DropIndexRule;
 use Difflock\Migration\Rules\DropTableRule;
 use Difflock\Migration\Rules\ForeignKeyRule;
 use Difflock\Migration\Rules\LargeTableRule;
+use Difflock\Migration\Rules\RedundantIndexRule;
 use Difflock\Migration\Rules\RenameColumnRule;
 use Difflock\Migration\Rules\SensitiveColumnRule;
 use Difflock\Migration\Rules\UnindexedForeignKeyRule;
@@ -223,6 +224,7 @@ return [
         DropIndexRule::class,
         ForeignKeyRule::class,
         UnindexedForeignKeyRule::class,
+        RedundantIndexRule::class,
         SensitiveColumnRule::class,
         LargeTableRule::class,
     ],
