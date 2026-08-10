@@ -27,6 +27,9 @@ final class LintCommand extends Command
     protected $signature = 'difflock:lint
         {--all : Analyse every migration, not only the pending ones}
         {--accept : Record everything found as accepted, so only new findings fail from now on}
+        {--rule= : Show only findings from this rule, * wildcards allowed}
+        {--table= : Show only findings about this table, * wildcards allowed}
+        {--risk= : Show only findings at or above this level}
         {--path=* : Analyse only migrations in these directories}
         {--realpath : Treat the given paths as absolute rather than relative to the application}
         {--fail-on= : The lowest risk level that should fail the command: safe, low, medium, high or critical}
@@ -121,6 +124,11 @@ final class LintCommand extends Command
             return $failed ? self::FAILURE : self::SUCCESS;
         }
 
+        // Filters narrow what is printed and never what is judged: the exit code
+        // above came from the whole report, so `--rule=add-index` cannot be used to
+        // make a failing build pass.
+        $shown = $report->only($this->filter('rule'), $this->filter('table'), $this->riskFilter());
+
         Banner::render($this->output, 'Difflock  ·  Migration Analysis');
 
         if ($audited) {
@@ -135,9 +143,23 @@ final class LintCommand extends Command
             $this->output->writeln('');
         }
 
-        $renderer->render($this->output, $report);
+        $renderer->render($this->output, $shown);
 
         return $failed ? self::FAILURE : self::SUCCESS;
+    }
+
+    private function filter(string $option): ?string
+    {
+        $value = $this->option($option);
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    private function riskFilter(): ?RiskLevel
+    {
+        $value = $this->filter('risk');
+
+        return $value === null ? null : RiskLevel::tryFrom(strtolower($value));
     }
 
     /**

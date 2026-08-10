@@ -7,6 +7,7 @@ namespace Difflock\Migration;
 use Difflock\Migration\Parser\ParsedMigration;
 use Difflock\Risk\RiskLevel;
 use Difflock\Risk\RiskSummary;
+use Illuminate\Support\Str;
 
 /**
  * Everything one run of the analyzer found.
@@ -77,6 +78,35 @@ final readonly class MigrationReport
         }
 
         return array_values(array_unique($warnings));
+    }
+
+    /**
+     * The same report narrowed to findings matching every filter given.
+     *
+     * Filtering is presentational: the migrations analysed, the warnings and the
+     * accepted count all stay as they were, so a narrowed report still says what was
+     * looked at. It is not a way to make a build pass — the caller decides the exit
+     * code from the unfiltered report.
+     *
+     * @param  string|null  $rule  Rule identifier, `*` wildcards allowed.
+     * @param  string|null  $table  Table name, `*` wildcards allowed.
+     * @param  RiskLevel|null  $atLeast  Drop anything below this level.
+     */
+    public function only(?string $rule = null, ?string $table = null, ?RiskLevel $atLeast = null): self
+    {
+        $findings = array_values(array_filter($this->findings, static function (MigrationFinding $finding) use ($rule, $table, $atLeast): bool {
+            if ($rule !== null && ! Str::is($rule, $finding->rule)) {
+                return false;
+            }
+
+            if ($table !== null && ($finding->table === null || ! Str::is($table, $finding->table))) {
+                return false;
+            }
+
+            return ! $atLeast instanceof RiskLevel || $finding->risk->atLeast($atLeast);
+        }));
+
+        return new self($this->migrations, $findings, $this->databaseAvailable, $this->accepted);
     }
 
     /**

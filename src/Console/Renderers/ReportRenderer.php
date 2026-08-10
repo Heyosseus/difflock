@@ -10,57 +10,166 @@ use Difflock\Risk\RiskLevel;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Prints a migration analysis: the findings, grouped by migration, worst first, then
+ * Prints a migration analysis: findings grouped by rule and risk, worst first, then
  * the tally underneath.
  *
- * Three things are always shown and never abbreviated away — the risk level, whether
- * the operation is destructive, and whether the parser understood the whole file.
- * The last of those is the one a reader would never think to ask for and most needs:
- * a clean report over a file Difflock could only half read is not a clean report.
+ * ## Why grouped, and why the prose is printed once
+ *
+ * The first version printed every finding in full, and on a real application that
+ * was unusable: 124 cascading-foreign-key findings meant the same five-line
+ * explanation and three-line remediation printed 124 times — about a thousand lines
+ * of identical prose. An explanation is a property of the *rule*, not of each place
+ * the rule fired, and printing it per occurrence buried the one thing the reader
+ * needed, which is the list of places.
+ *
+ * So a group whose findings all share the same explanation prints it once and then
+ * lists the occurrences as one line each. A group whose explanations genuinely
+ * differ — `drop-column` names the indexes on each column, `add-index` quotes each
+ * table's row count — prints the first few in full and says how many it held back.
+ * The distinction is made by comparing the text, so it stays right as rules change.
+ *
+ * Three things are never abbreviated away: the risk level, whether the operation is
+ * destructive, and whether the parser understood the whole file.
  */
 final class ReportRenderer
 {
+    /** How many occurrences a group shows before it starts counting instead. */
+    private const int PREVIEW = 3;
+
     public function render(OutputInterface $output, MigrationReport $report): void
     {
         if ($report->migrations === []) {
-            $output->writeln('  <fg=gray>No migrations were found to analyse.</>');
-
-            foreach (Text::wrap(
-                'Difflock looks in the application\'s migration paths. Point it somewhere else with '
-                    .'--path, or add a path to `migrations.paths` in config/difflock.php.',
-                '  ',
-            ) as $line) {
-                $output->writeln('<fg=gray>'.$line.'</>');
-            }
-
-            $output->writeln('');
+            $this->nothingFound($output);
 
             return;
         }
 
-        foreach ($report->migrations as $migration) {
-            $findings = $report->findingsFor($migration->name);
-
-            if ($findings === []) {
-                continue;
-            }
-
-            $output->writeln('  <options=bold>'.$migration->name.'</>');
-            $output->writeln('');
-
-            foreach ($findings as $finding) {
-                $this->finding($output, $finding);
-            }
+        foreach ($this->grouped($report->findings) as $group) {
+            $this->group($output, $group, $output->isVerbose());
         }
 
         $this->tally($output, $report);
         $this->warnings($output, $report);
     }
 
-    private function finding(OutputInterface $output, MigrationFinding $finding): void
+    /**
+     * Findings bucketed by rule and risk, most serious first.
+     *
+     * Risk is part of the key because one rule legitimately reports at several
+     * levels — an index on an empty table and the same index on eight million rows
+     * are not the same finding and should not share a heading.
+     *
+     * @param  list<MigrationFinding>  $findings
+     * @return list<list<MigrationFinding>>
+     */
+    private function grouped(array $findings): array
     {
-        $risk = $finding->risk;
+        $groups = [];
 
+        foreach ($findings as $finding) {
+            $groups[$finding->risk->value.'|'.$finding->rule][] = $finding;
+        }
+
+        // The findings arrive sorted worst-first, so the groups are already in the
+        // right order; array_values just drops the keys.
+        return array_values($groups);
+    }
+
+    /**
+     * @param  list<MigrationFinding>  $group
+     */
+    private function group(OutputInterface $output, array $group, bool $verbose): void
+    {
+        $first = $group[0];
+        $risk = $first->risk;
+        $count = count($group);
+
+        $output->writeln(
+            '  <fg='.$risk->colour().';options=bold>'.$risk->glyph().' '.Text::pad($risk->label(), 9).'</>'
+                .'<options=bold>'.$first->rule.'</>'
+                .($count === 1 ? '' : '  <fg=gray>'.$count.' findings</>'),
+        );
+
+        $output->writeln('');
+
+        if ($this->uniform($group)) {
+            $this->prose($output, $first, '    ');
+            $this->occurrences($output, $group, $verbose);
+        } else {
+            $shown = $verbose ? $group : array_slice($group, 0, self::PREVIEW);
+
+            foreach ($shown as $finding) {
+                $output->writeln('    <options=bold>'.$finding->message.'</>');
+                $output->writeln('      <fg=gray>'.$this->where($finding).'</>');
+                $this->prose($output, $finding, '      ');
+            }
+
+            $this->remainder($output, $count - count($shown), $first->rule);
+        }
+
+        $output->writeln('');
+    }
+
+    /**
+     * Whether every finding in the group says the same thing, so it need only be
+     * said once.
+     *
+     * @param  list<MigrationFinding>  $group
+     */
+    private function uniform(array $group): bool
+    {
+        foreach ($group as $finding) {
+            if ($finding->explanation !== $group[0]->explanation || $finding->suggestion !== $group[0]->suggestion) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function prose(OutputInterface $output, MigrationFinding $finding, string $indent): void
+    {
+        foreach (Text::wrap($finding->explanation, $indent) as $line) {
+            $output->writeln('<fg=default>'.$line.'</>');
+        }
+
+        if ($finding->suggestion !== null) {
+            foreach (Text::wrap('→ '.$finding->suggestion, $indent) as $line) {
+                $output->writeln('<fg=gray>'.$line.'</>');
+            }
+        }
+
+        $output->writeln('');
+    }
+
+    /**
+     * @param  list<MigrationFinding>  $group
+     */
+    private function occurrences(OutputInterface $output, array $group, bool $verbose): void
+    {
+        $shown = $verbose ? $group : array_slice($group, 0, self::PREVIEW);
+
+        foreach ($shown as $finding) {
+            $output->writeln('    '.$finding->message.'  <fg=gray>'.$this->where($finding).'</>');
+        }
+
+        $this->remainder($output, count($group) - count($shown), $group[0]->rule);
+    }
+
+    private function remainder(OutputInterface $output, int $hidden, string $rule): void
+    {
+        if ($hidden <= 0) {
+            return;
+        }
+
+        $output->writeln(
+            '    <fg=gray>… '.$hidden.' more. Run with -v to list them, or --rule='.$rule.'</>',
+        );
+    }
+
+    /** Where the finding is, and what it does, in one line. */
+    private function where(MigrationFinding $finding): string
+    {
         $flags = [];
 
         if ($finding->destructive) {
@@ -75,26 +184,21 @@ final class ReportRenderer
             $flags[] = 'conditional';
         }
 
-        $output->writeln(
-            '    <fg='.$risk->colour().';options=bold>'.$risk->glyph().' '.Text::pad($risk->label(), 9).'</>'
-                .$finding->message,
-        );
-
-        $meta = '<fg=gray>'.$finding->rule
+        return $finding->migration
             .($finding->line === null ? '' : ':'.$finding->line)
-            .($flags === [] ? '' : '  ·  '.implode(', ', $flags))
-            .'</>';
+            .($flags === [] ? '' : '  ·  '.implode(', ', $flags));
+    }
 
-        $output->writeln('      '.$meta);
+    private function nothingFound(OutputInterface $output): void
+    {
+        $output->writeln('  <fg=gray>No migrations were found to analyse.</>');
 
-        foreach (Text::wrap($finding->explanation, '      ') as $line) {
-            $output->writeln('<fg=default>'.$line.'</>');
-        }
-
-        if ($finding->suggestion !== null) {
-            foreach (Text::wrap('→ '.$finding->suggestion, '      ') as $line) {
-                $output->writeln('<fg=gray>'.$line.'</>');
-            }
+        foreach (Text::wrap(
+            'Difflock looks in the application\'s migration paths. Point it somewhere else with '
+                .'--path, or add a path to `migrations.paths` in config/difflock.php.',
+            '  ',
+        ) as $line) {
+            $output->writeln('<fg=gray>'.$line.'</>');
         }
 
         $output->writeln('');
