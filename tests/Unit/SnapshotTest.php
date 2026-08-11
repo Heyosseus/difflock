@@ -87,7 +87,7 @@ it('lists every index a dropped column takes with it', function (): void {
         ['users' => 1],
     ));
 
-    expect($findings[0]->explanation)
+    expect($findings[0]->context)
         ->toContain('users_email_index and users_email_unique')
         ->toContain('1 row');
 });

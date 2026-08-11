@@ -77,10 +77,6 @@ final class AddIndexRule implements MigrationRule
             .'takes a lock, and for how long, depends on the database engine and version — Difflock '
             .'does not know which applies here, so it judges by size alone.';
 
-        $explanation .= $size === null
-            ? ' The size of the table could not be determined.'
-            : ' The table holds '.$size.'.';
-
         if ($unique) {
             $explanation .= ' A unique index also fails outright if the existing rows contain '
                 .'duplicates, which stops the migration partway through.';
@@ -97,6 +93,7 @@ final class AddIndexRule implements MigrationRule
             subjectType: Subject::Index,
             reversible: $context->reversible(),
             operation: $operation,
+            context: $size ?? 'table size could not be determined',
         );
     }
 

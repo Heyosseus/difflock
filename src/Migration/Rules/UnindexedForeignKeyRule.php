@@ -138,12 +138,6 @@ final class UnindexedForeignKeyRule implements MigrationRule
                 .'created for the column a foreign key points from; on MySQL and MariaDB one is created '
                 .'automatically and this finding does not apply.';
 
-        $size = $context->database->describeSize($context->tableName());
-
-        if ($size !== null) {
-            $explanation .= ' The table holds '.$size.'.';
-        }
-
         return $context->finding(
             rule: $this->identifier(),
             risk: $this->risk($context, $known),
@@ -155,6 +149,7 @@ final class UnindexedForeignKeyRule implements MigrationRule
             subjectType: Subject::Column,
             reversible: $context->reversible(),
             operation: $operation,
+            context: $context->database->describeSize($context->tableName()),
         );
     }
 

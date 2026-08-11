@@ -42,8 +42,8 @@ describe('drop-index with usage evidence', function (): void {
         ));
 
         expect($findings[0]->risk)->toBe(RiskLevel::Low)
-            ->and($findings[0]->explanation)->toContain('read no times')
-            ->and($findings[0]->explanation)->toContain('274 days')
+            ->and($findings[0]->explanation)->toContain('no reads of this index')
+            ->and($findings[0]->context)->toContain('274 days')
             ->and($findings[0]->suggestion)->toContain('safe to drop');
     });
 
@@ -53,7 +53,7 @@ describe('drop-index with usage evidence', function (): void {
         ));
 
         expect($findings[0]->risk)->toBe(RiskLevel::High)
-            ->and($findings[0]->explanation)->toContain('2,100,000 times')
+            ->and($findings[0]->context)->toContain('2,100,000 reads')
             ->and($findings[0]->suggestion)->toContain('Find what reads it');
     });
 

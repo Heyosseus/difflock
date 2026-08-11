@@ -98,6 +98,7 @@ final readonly class MigrationContext
         bool $destructive = false,
         bool $reversible = true,
         ?Operation $operation = null,
+        ?string $context = null,
     ): MigrationFinding {
         return new MigrationFinding(
             rule: $rule,
@@ -113,6 +114,7 @@ final readonly class MigrationContext
             reversible: $reversible,
             line: $operation->line ?? $this->statement->line,
             conditional: $operation->conditional ?? $this->statement->conditional,
+            context: $context,
         );
     }
 }

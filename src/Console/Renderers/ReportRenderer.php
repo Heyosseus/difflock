@@ -10,33 +10,41 @@ use Difflock\Risk\RiskLevel;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Prints a migration analysis: findings grouped by rule and risk, worst first, then
- * the tally underneath.
+ * Prints a migration analysis, in one of two modes.
  *
- * ## Why grouped, and why the prose is printed once
+ * ## Summary, by default
  *
- * The first version printed every finding in full, and on a real application that
- * was unusable: 124 cascading-foreign-key findings meant the same five-line
- * explanation and three-line remediation printed 124 times — about a thousand lines
- * of identical prose. An explanation is a property of the *rule*, not of each place
- * the rule fired, and printing it per occurrence buried the one thing the reader
- * needed, which is the list of places.
+ * A count per risk level with the rules contributing to it, the worst few findings,
+ * and where to find the rest. Its length does not depend on how many findings there
+ * are, which is the entire point: this renderer previously printed 693 lines against
+ * a real 170-migration application, and output that long is not read, it is scrolled
+ * past — so the findings in it are worth nothing however correct they are.
  *
- * So a group whose findings all share the same explanation prints it once and then
- * lists the occurrences as one line each. A group whose explanations genuinely
- * differ — `drop-column` names the indexes on each column, `add-index` quotes each
- * table's row count — prints the first few in full and says how many it held back.
- * The distinction is made by comparing the text, so it stays right as rules change.
+ * ## Detail, with `-v`
  *
- * Three things are never abbreviated away: the risk level, whether the operation is
- * destructive, and whether the parser understood the whole file.
+ * Every finding, grouped by rule, risk and the prose it carries, so a shared
+ * explanation is printed once for the whole group rather than once per finding.
+ *
+ * That grouping only works because rules keep per-occurrence facts out of their
+ * explanations and put them in {@see MigrationFinding::$context} instead. When they
+ * did not — when `drop-column` appended each table's row count to its paragraph —
+ * every finding became a group of one and the detail view was ten times longer than
+ * it needed to be.
+ *
+ * Four things are never abbreviated away, in either mode: the risk tally, the count
+ * of accepted findings, whether the database was reachable, and what the parser
+ * could not read. They are what a reader would not know to ask for, and dropping
+ * them is how a summary becomes a lie.
  */
 final class ReportRenderer
 {
     /** How many occurrences a group shows before it starts counting instead. */
     private const int PREVIEW = 3;
 
-    public function render(OutputInterface $output, MigrationReport $report): void
+    /**
+     * @param  string  $command  What to point the reader at for the full detail.
+     */
+    public function render(OutputInterface $output, MigrationReport $report, string $command = 'difflock:lint'): void
     {
         if ($report->migrations === []) {
             $this->nothingFound($output);
@@ -44,12 +52,100 @@ final class ReportRenderer
             return;
         }
 
+        // Summary unless asked otherwise. On a real application this is the
+        // difference between twenty lines and seven hundred, and seven hundred lines
+        // of correct findings are worth nothing because nobody reads them.
+        $output->isVerbose()
+            ? $this->detail($output, $report)
+            : $this->summary($output, $report, $command);
+
+        $this->warnings($output, $report);
+    }
+
+    /** Every finding, grouped. What `-v` gives you. */
+    public function detail(OutputInterface $output, MigrationReport $report): void
+    {
         foreach ($this->grouped($report->findings) as $group) {
-            $this->group($output, $group, $output->isVerbose());
+            $this->group($output, $group, true);
         }
 
         $this->tally($output, $report);
-        $this->warnings($output, $report);
+    }
+
+    /**
+     * The bounded view: what was found, the worst of it, and where the rest is.
+     *
+     * Length is independent of the number of findings — one line per risk level that
+     * has any, plus a fixed-size worst list. The tally, the accepted count and the
+     * parser warnings are never abbreviated away, because they are the things a
+     * reader would not know to ask for.
+     */
+    public function summary(OutputInterface $output, MigrationReport $report, string $command): void
+    {
+        $summary = $report->summary();
+
+        if ($summary->total === 0) {
+            $output->writeln('  <fg=green>✓</> Nothing to report.');
+            $output->writeln('');
+            $this->analysed($output, $report);
+
+            return;
+        }
+
+        foreach (array_reverse(RiskLevel::ascending()) as $level) {
+            $count = $summary->count($level);
+
+            if ($count === 0) {
+                continue;
+            }
+
+            $output->writeln(
+                '  <fg='.$level->colour().';options=bold>'.$level->glyph().' '.Text::pad($level->label(), 9).'</>'
+                    .str_pad((string) $count, 4, ' ', STR_PAD_LEFT)
+                    .'   <fg=gray>'.implode(', ', $this->rulesAt($report->findings, $level)).'</>',
+            );
+        }
+
+        $output->writeln('');
+        $output->writeln('  <options=bold>Worst</>');
+
+        foreach (array_slice($report->findings, 0, self::PREVIEW) as $finding) {
+            $output->writeln('    '.$finding->message);
+            $output->writeln('      <fg=gray>'.$this->where($finding).'</>');
+        }
+
+        $output->writeln('');
+        $this->analysed($output, $report);
+
+        foreach ([
+            $command.' -v' => 'every finding in full',
+            $command.' --rule=NAME' => 'one rule at a time',
+            'difflock:report' => 'a shareable HTML report',
+        ] as $invocation => $describes) {
+            $output->writeln('  <fg=gray>→ '.Text::pad($invocation, 30).$describes.'</>');
+        }
+
+        $output->writeln('');
+    }
+
+    /**
+     * The rules contributing to a level, so the tally says what kind of problem it is
+     * rather than only how much of it there is.
+     *
+     * @param  list<MigrationFinding>  $findings
+     * @return list<string>
+     */
+    private function rulesAt(array $findings, RiskLevel $level): array
+    {
+        $rules = [];
+
+        foreach ($findings as $finding) {
+            if ($finding->risk === $level) {
+                $rules[$finding->rule] = true;
+            }
+        }
+
+        return array_keys($rules);
     }
 
     /**
@@ -136,10 +232,16 @@ final class ReportRenderer
      */
     private function occurrences(OutputInterface $output, array $group, bool $verbose): void
     {
+        // `-v` means every finding — the summary is where brevity lives now, so
+        // truncating here as well would leave no way to see the whole picture.
         $shown = $verbose ? $group : array_slice($group, 0, self::PREVIEW);
 
         foreach ($shown as $finding) {
             $output->writeln('    '.$finding->message.'  <fg=gray>'.$this->where($finding).'</>');
+
+            if ($finding->context !== null) {
+                $output->writeln('      <fg=gray>'.$finding->context.'</>');
+            }
         }
 
         $this->remainder($output, count($group) - count($shown), $group[0]->rule);
@@ -196,7 +298,6 @@ final class ReportRenderer
     private function tally(OutputInterface $output, MigrationReport $report): void
     {
         $summary = $report->summary();
-        $analyzed = count($report->migrations);
 
         $output->writeln('  <options=bold>Risk</>');
 
@@ -210,10 +311,25 @@ final class ReportRenderer
         }
 
         $output->writeln('');
-        $output->writeln('  <fg=gray>'.$analyzed.' migration'.($analyzed === 1 ? '' : 's').' analysed.</>');
+        $this->analysed($output, $report);
+    }
 
-        // Never silent: an accepted backlog that nobody can see is a backlog that
-        // quietly becomes permanent.
+    /**
+     * How much was looked at, and what was held back.
+     *
+     * Printed in both modes. An accepted backlog nobody can see is a backlog that
+     * quietly becomes permanent.
+     */
+    private function analysed(OutputInterface $output, MigrationReport $report): void
+    {
+        $analyzed = count($report->migrations);
+        $total = $report->summary()->total;
+
+        $output->writeln(
+            '  <fg=gray>'.$analyzed.' migration'.($analyzed === 1 ? '' : 's').' analysed'
+                .($total === 0 ? '' : ' · '.$total.' finding'.($total === 1 ? '' : 's')).'.</>',
+        );
+
         if ($report->accepted !== []) {
             $output->writeln(
                 '  <fg=gray>'.count($report->accepted).' previously accepted finding'

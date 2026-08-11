@@ -70,6 +70,9 @@ final class AddNotNullColumnRule implements MigrationRule
         $column = Blueprint::columnsOf($operation)[0] ?? '<unresolved>';
         $table = $context->tableName() ?? '<unresolved>';
 
+        // Three genuinely different arguments, not three renderings of one — so these
+        // stay in the explanation and collapse to three groups. The row count itself
+        // varies per finding and goes in the context line.
         [$risk, $because] = match (true) {
             $rows === null => [
                 RiskLevel::Medium,
@@ -78,9 +81,8 @@ final class AddNotNullColumnRule implements MigrationRule
             ],
             $rows > 0 => [
                 RiskLevel::High,
-                'The table holds '.($context->database->describeSize($table) ?? $rows.' rows')
-                    .', and every one of them needs a value the migration does not supply. Most '
-                    .'engines refuse the statement rather than inventing one.',
+                'The table is not empty, and every existing row needs a value the migration does not '
+                    .'supply. Most engines refuse the statement rather than inventing one.',
             ],
             default => [
                 RiskLevel::Low,
@@ -100,6 +102,7 @@ final class AddNotNullColumnRule implements MigrationRule
             subjectType: Subject::Column,
             reversible: $context->reversible(),
             operation: $operation,
+            context: $context->database->describeSize($table),
         );
     }
 }

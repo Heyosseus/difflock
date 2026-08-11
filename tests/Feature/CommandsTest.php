@@ -25,11 +25,12 @@ describe('difflock:lint', function (): void {
     it('reports findings and fails at the configured threshold', function (): void {
         [$exit, $output] = runCommand('difflock:lint');
 
+        // Summary by default: the worst finding, the level tally, and where the rest is.
         expect($exit)->toBe(1)
             ->and($output)->toContain('DROP COLUMN users.legacy_token')
             ->toContain('CRITICAL')
             ->toContain('2026_08_10_120000_remove_legacy_token')
-            ->toContain('Risk');
+            ->toContain('difflock:lint -v');
     });
 
     it('passes when nothing reaches the threshold', function (): void {

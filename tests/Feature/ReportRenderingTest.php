@@ -48,21 +48,26 @@ function render(MigrationReport $report, bool $verbose = false): string
 it('prints a shared explanation once, however many findings share it', function (): void {
     $findings = array_map(shared(...), range(1, 124));
 
-    $output = render(reportOf(...$findings));
+    $output = render(reportOf(...$findings), verbose: true);
 
     expect(substr_count($output, 'A cascading delete removes child rows'))->toBe(1)
         ->and(substr_count($output, 'Consider restrictOnDelete'))->toBe(1)
         ->and($output)->toContain('124 findings');
 });
 
-it('lists a few occurrences and counts the rest', function (): void {
+it('bounds the summary however many findings there are', function (): void {
+    $lines = substr_count(render(reportOf(...array_map(shared(...), range(1, 200)))), "\n");
+
+    expect($lines)->toBeLessThan(25);
+});
+
+it('points at the ways to see more', function (): void {
     $output = render(reportOf(...array_map(shared(...), range(1, 124))));
 
-    expect($output)->toContain('table_1.user_id')
-        ->and($output)->toContain('table_3.user_id')
-        ->and($output)->not->toContain('table_4.user_id')
-        ->and($output)->toContain('121 more')
-        ->and($output)->toContain('--rule=foreign-key');
+    expect($output)->toContain('-v')
+        ->toContain('--rule=')
+        ->toContain('difflock:report')
+        ->toContain('124 findings');
 });
 
 it('lists every occurrence when asked to be verbose', function (): void {
@@ -86,7 +91,7 @@ it('prints each finding in full when the explanations genuinely differ', functio
             'The table holds 12 rows.', table: 'a', line: 1),
         new MigrationFinding('drop-column', RiskLevel::Critical, 'm2', 'DROP COLUMN c.d',
             'The table holds 8,000,000 rows.', table: 'c', line: 2),
-    ));
+    ), verbose: true);
 
     expect($output)->toContain('12 rows')
         ->and($output)->toContain('8,000,000 rows');
@@ -111,7 +116,7 @@ it('never hides the risk tally or the accepted count', function (): void {
         [shared(2)],
     );
 
-    expect(render($report))->toContain('Risk')
+    expect(render($report, verbose: true))->toContain('Risk')
         ->toContain('1 previously accepted finding');
 });
 

@@ -47,15 +47,16 @@ final class DropTableRule implements MigrationRule
                 .'and may be subject to a retention obligation that outlives the feature that wrote them.';
         }
 
+        $facts = [];
+
         if ($size !== null) {
-            $explanation .= ' This table currently holds '.$size.'.';
+            $facts[] = $size;
         }
 
         if (! $context->database->available) {
-            $explanation .= ' The database could not be reached, so the size of the table is unknown.';
+            $facts[] = 'database unreachable, size unknown';
         } elseif ($table !== null && ! $context->database->hasTable($table)) {
-            $explanation .= ' The table does not exist on the inspected database, so this drop may '
-                .'already have run there, or may target a database this one is not.';
+            $facts[] = 'not present on the inspected database';
         }
 
         return [$context->finding(
@@ -69,6 +70,7 @@ final class DropTableRule implements MigrationRule
             subjectType: Subject::Table,
             destructive: true,
             reversible: false,
+            context: $facts === [] ? null : implode(' · ', $facts),
         )];
     }
 

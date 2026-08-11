@@ -126,14 +126,14 @@ final class ForeignKeyRule implements MigrationRule
                 .($column === '' ? '' : '.'.$column),
             explanation: 'Adding a constraint to an existing table makes the database validate every '
                 .'row already in it. If any of them points at a parent that is not there, the '
-                .'statement is refused and the migration stops partway through.'
-                .($size === null ? ' The size of the table could not be determined.' : ' The table holds '.$size.'.'),
+                .'statement is refused and the migration stops partway through.',
             suggestion: 'Find and resolve the orphans before deploying — a `whereNotExists` against the '
                 .'parent table is usually enough to know whether there are any.',
             subject: $column === '' ? null : $column,
             subjectType: Subject::Constraint,
             reversible: $context->reversible(),
             operation: $operation,
+            context: $size ?? 'table size could not be determined',
         );
     }
 
