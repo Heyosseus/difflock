@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="art/social.svg" alt="Difflock — diff, analyze and protect your Laravel database schema" width="100%">
+</p>
+
 # Difflock
 
 [![Latest Version](https://img.shields.io/packagist/v/heyosseus/difflock.svg)](https://packagist.org/packages/heyosseus/difflock)
@@ -47,21 +51,7 @@ php artisan difflock:lint
 
 ## Overview
 
-Difflock has three jobs, and it keeps them separate.
-
-```text
-                    DIFFLOCK
-                       │
-          ┌────────────┼────────────┐
-          │            │            │
-         DIFF        ANALYZE       LOCK
-          │            │            │
-     What changed?  Is it risky?  Should it run?
-          │            │            │
-          └────────────┼────────────┘
-                       │
-                    DATABASE
-```
+Difflock has three jobs, and it keeps them separate. The diff engine does not know how findings are rendered; the rules do not know Artisan exists; the guard consumes analysis rather than repeating it. [Architecture tests](tests/ArchTest.php) enforce each of those boundaries.
 
 | Command | Answers |
 | --- | --- |

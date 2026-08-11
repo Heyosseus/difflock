@@ -1,48 +1,40 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="240" viewBox="0 0 920 240" role="img" aria-label="Difflock's three jobs: diff what changed, analyze the risk, lock dangerous changes">
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="236" viewBox="0 0 920 236" role="img" aria-label="Difflock's three jobs: diff what changed, analyze the risk, lock dangerous changes">
   <title>Diff · Analyze · Lock</title>
-  <defs>
-    <style>
-      .sans  { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif; }
-      .mono  { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-      .card  { fill: #1b1e24; stroke: #2b3038; }
-      .head  { fill: #ffffff; font-weight: 700; }
-      .body  { fill: #8a929f; }
-      .cmd   { fill: #5aa9e6; }
-    </style>
-  </defs>
 
-  <rect width="920" height="240" rx="10" fill="#14161a"/>
+  <rect width="920" height="236" rx="10" fill="#14161a"/>
 
-  <g>
-    <rect class="card" x="24" y="28" width="280" height="184" rx="10"/>
-    <rect x="24" y="28" width="280" height="3" rx="1.5" fill="#5aa9e6"/>
-    <text class="sans head" x="48" y="70" font-size="19">DIFF</text>
-    <text class="sans body" x="48" y="100" font-size="14">What changed?</text>
-    <text class="sans body" x="48" y="128" font-size="13">Compare the live schema against</text>
-    <text class="sans body" x="48" y="148" font-size="13">a committed baseline, or another</text>
-    <text class="sans body" x="48" y="168" font-size="13">connection.</text>
-    <text class="mono cmd" x="48" y="196" font-size="12.5">difflock:diff</text>
-  </g>
+  <g font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, sans-serif">
+    <g>
+      <rect x="24" y="26" width="280" height="184" rx="10" fill="#1b1e24" stroke="#2b3038"/>
+      <rect x="24" y="26" width="280" height="3" rx="1.5" fill="#5aa9e6"/>
+      <text x="48" y="68" font-size="19" font-weight="700" fill="#ffffff">DIFF</text>
+      <text x="48" y="98" font-size="14" fill="#dfe3e9">What changed?</text>
+      <text x="48" y="126" font-size="13" fill="#8a929f">Compare the live schema against</text>
+      <text x="48" y="146" font-size="13" fill="#8a929f">a committed baseline, or another</text>
+      <text x="48" y="166" font-size="13" fill="#8a929f">connection.</text>
+      <text x="48" y="194" font-size="12.5" fill="#5aa9e6" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">difflock:diff</text>
+    </g>
 
-  <g>
-    <rect class="card" x="320" y="28" width="280" height="184" rx="10"/>
-    <rect x="320" y="28" width="280" height="3" rx="1.5" fill="#f2c14e"/>
-    <text class="sans head" x="344" y="70" font-size="19">ANALYZE</text>
-    <text class="sans body" x="344" y="100" font-size="14">Is it risky?</text>
-    <text class="sans body" x="344" y="128" font-size="13">Eleven rules, weighed against</text>
-    <text class="sans body" x="344" y="148" font-size="13">real row counts and the indexes</text>
-    <text class="sans body" x="344" y="168" font-size="13">that actually exist.</text>
-    <text class="mono cmd" x="344" y="196" font-size="12.5">difflock:lint</text>
-  </g>
+    <g>
+      <rect x="320" y="26" width="280" height="184" rx="10" fill="#1b1e24" stroke="#2b3038"/>
+      <rect x="320" y="26" width="280" height="3" rx="1.5" fill="#f2c14e"/>
+      <text x="344" y="68" font-size="19" font-weight="700" fill="#ffffff">ANALYZE</text>
+      <text x="344" y="98" font-size="14" fill="#dfe3e9">Is it risky?</text>
+      <text x="344" y="126" font-size="13" fill="#8a929f">Eleven rules, weighed against</text>
+      <text x="344" y="146" font-size="13" fill="#8a929f">real row counts and the indexes</text>
+      <text x="344" y="166" font-size="13" fill="#8a929f">that actually exist.</text>
+      <text x="344" y="194" font-size="12.5" fill="#f2c14e" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">difflock:lint</text>
+    </g>
 
-  <g>
-    <rect class="card" x="616" y="28" width="280" height="184" rx="10"/>
-    <rect x="616" y="28" width="280" height="3" rx="1.5" fill="#ff6b6b"/>
-    <text class="sans head" x="640" y="70" font-size="19">LOCK</text>
-    <text class="sans body" x="640" y="100" font-size="14">Should it run?</text>
-    <text class="sans body" x="640" y="128" font-size="13">Refuse to migrate when</text>
-    <text class="sans body" x="640" y="148" font-size="13">something destructive is</text>
-    <text class="sans body" x="640" y="168" font-size="13">about to run unattended.</text>
-    <text class="mono cmd" x="640" y="196" font-size="12.5">difflock:migrate</text>
+    <g>
+      <rect x="616" y="26" width="280" height="184" rx="10" fill="#1b1e24" stroke="#2b3038"/>
+      <rect x="616" y="26" width="280" height="3" rx="1.5" fill="#ff6b6b"/>
+      <text x="640" y="68" font-size="19" font-weight="700" fill="#ffffff">LOCK</text>
+      <text x="640" y="98" font-size="14" fill="#dfe3e9">Should it run?</text>
+      <text x="640" y="126" font-size="13" fill="#8a929f">Refuse to migrate when</text>
+      <text x="640" y="146" font-size="13" fill="#8a929f">something destructive is</text>
+      <text x="640" y="166" font-size="13" fill="#8a929f">about to run unattended.</text>
+      <text x="640" y="194" font-size="12.5" fill="#ff6b6b" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">difflock:migrate</text>
+    </g>
   </g>
 </svg>
