@@ -5,6 +5,30 @@ All notable changes to `difflock` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.0 - 2026-08-11
+
+**The public API is now frozen.** The contracts, the value objects, `RiskLevel`,
+`MigrationFinding`, `MigrationReport`, the facade, the configuration keys, the
+`--format=json` documents and the MCP tool shapes are covered by the package version
+from here on. Breaking any of them requires a 2.0.
+
+Nothing in this release changes behaviour — 0.5.0 and 1.0.0 do the same things. What
+changes is the commitment: eleven rules, seven commands and four MCP tools have been
+exercised against three production applications, and the shapes they return are now
+something you can build on.
+
+### Added
+
+- **`difflock:migrate` expands every blocking finding in full** when it blocks, collapsing only the rest. Everywhere else a summary is right because the reader is browsing; here the guard has just stopped a write, and the findings that caused it are the entire reason to read the output.
+- **The MCP server seals STDOUT around every request.** A `dd()` left in a model, or a PHP deprecation from a config file, used to land in the JSON-RPC stream and make the whole server appear not to exist — a failure with nothing in it to suggest the cause. Discarded bytes are reported on STDERR so the cause is still visible.
+- **`difflock_lint_migration` accepts `source`** as well as `path`, so an agent can check the migration it is holding — against real row counts and real indexes — and write the file once, instead of writing a destructive migration in order to discover that it is destructive.
+- **`difflock_rules`** publishes each rule's own documentation, so an agent explaining a finding quotes the reasoning rather than reconstructing it from the rule's name.
+- **Tool responses are bounded** at 25 findings, with the exact total and a `truncated` flag alongside.
+
+### Fixed
+
+- `difflock:check` and `difflock:migrate` claimed **"No migrations were found to analyse"** and suggested correcting `--path` when a project's migrations had simply all been applied. On a 170-migration application that was both false and actively misleading. They now say nothing is pending.
+
 ## 0.5.0 - 2026-08-11
 
 Difflock for AI agents. An agent writing a migration cannot see how many rows the
@@ -129,6 +153,7 @@ contracts to settle before 1.0 rather than after it.
 
 - **`unindexed-foreign-key`** catches the most common Laravel/PostgreSQL performance bug — PostgreSQL creates no index for the column a foreign key points from, and MySQL does. The rule is engine-aware and says nothing where the engine handles it.
 
+[1.0.0]: https://github.com/Heyosseus/difflock/releases/tag/v1.0.0
 [0.5.0]: https://github.com/Heyosseus/difflock/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Heyosseus/difflock/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Heyosseus/difflock/releases/tag/v0.3.0

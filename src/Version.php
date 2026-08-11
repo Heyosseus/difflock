@@ -13,5 +13,5 @@ namespace Difflock;
  */
 final class Version
 {
-    public const string CURRENT = '0.5.0';
+    public const string CURRENT = '1.0.0';
 }
