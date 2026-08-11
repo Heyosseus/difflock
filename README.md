@@ -592,18 +592,41 @@ Difflock ships an MCP server that closes the loop.
 // .mcp.json — Claude Code, Cursor, Laravel Boost, anything speaking MCP
 {
   "mcpServers": {
-    "difflock": { "command": "php", "args": ["artisan", "difflock:mcp"] }
+    "difflock": {
+      "command": "php",
+      "args": ["-d", "display_errors=stderr", "artisan", "difflock:mcp"]
+    }
   }
 }
 ```
 
-Three tools, in the order a careful developer would use them:
+Four tools, in the order a careful developer would use them:
 
 | Tool | Answers |
 | --- | --- |
 | `difflock_table_context` | What does this table look like — rows, columns, indexes, foreign keys? |
-| `difflock_lint_migration` | I just wrote this migration; what is wrong with it? |
+| `difflock_lint_migration` | What is wrong with this migration — **including one not written yet**? |
 | `difflock_schema_drift` | Has this database already diverged from the baseline? |
+| `difflock_rules` | What does this rule actually check, in this project? |
+
+### Check the draft, not the file
+
+`difflock_lint_migration` takes `source` as well as `path`. An agent can validate the
+migration it is *holding* — against real row counts and real indexes — fix it, and
+write once. Checking after writing means every intermediate mistake lands in the
+repository first.
+
+### Why `-d display_errors=stderr`
+
+On this transport **STDOUT carries the protocol and nothing else**. A single PHP
+deprecation notice printed during bootstrap lands ahead of the handshake, the client
+cannot parse it, and Difflock's tools appear not to exist — with nothing in the error
+to suggest why. I hit exactly this on a live application whose `config/database.php`
+used `PDO::MYSQL_ATTR_SSL_CA` on PHP 8.5.
+
+The flag redirects PHP's diagnostics to STDERR, where MCP clients collect server
+logs, so you still see them. Difflock also seals STDOUT around every request itself,
+so a `dd()` left in a model cannot corrupt the stream either.
 
 It is a **standalone stdio server**, not a Boost plugin. Boost publishes no documented API for third-party tool registration, and writing against an undocumented internal is how a package breaks on someone else's patch release. This works with Boost and with everything else.
 
