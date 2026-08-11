@@ -5,6 +5,30 @@ All notable changes to `difflock` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.0 - 2026-08-11
+
+Difflock for AI agents. An agent writing a migration cannot see how many rows the
+table holds, what is built on the column it is dropping, or whether the schema
+already drifted — so it writes the migration that passes review and takes production
+down, the same failure as always but generated faster.
+
+### Added
+
+- **`difflock:mcp`** serves Difflock over the Model Context Protocol on stdio, with three tools: `difflock_table_context` (what does this table look like), `difflock_lint_migration` (what is wrong with the migration I just wrote), and `difflock_schema_drift` (has this database already diverged). Works with Laravel Boost, Claude Code, Cursor and anything else speaking MCP.
+- **`difflock:explain`** writes a Markdown briefing on one migration — the tables it touches with their live state, every finding, and what the analysis could not see. **Nothing in it is generated**: it calls no language model, needs no API key and makes no network request. Difflock supplies the facts; whoever decides supplies the judgement.
+- **A skill for coding agents** at `skills/difflock/SKILL.md` — the workflow, and the things an agent must not do, such as silencing a finding to make a check pass.
+
+### Note on the MCP server
+
+It is a standalone stdio server rather than a Laravel Boost plugin. Boost publishes
+no documented API for third-party tool registration, and writing against an
+undocumented internal is how a package breaks on somebody else's patch release. If
+Boost documents a registration point, an adapter over these same tools is small.
+
+Two protocol details are load-bearing and tested: STDOUT carries the protocol and
+nothing else, so diagnostics go to STDERR; and a tool that throws comes back as a
+tool result the agent can recover from rather than as a broken stream.
+
 ## 0.4.0 - 2026-08-11
 
 Output density. `difflock:lint` printed **693 lines** against a real 170-migration
@@ -105,6 +129,7 @@ contracts to settle before 1.0 rather than after it.
 
 - **`unindexed-foreign-key`** catches the most common Laravel/PostgreSQL performance bug — PostgreSQL creates no index for the column a foreign key points from, and MySQL does. The rule is engine-aware and says nothing where the engine handles it.
 
+[0.5.0]: https://github.com/Heyosseus/difflock/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Heyosseus/difflock/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Heyosseus/difflock/releases/tag/v0.3.0
 [0.2.1]: https://github.com/Heyosseus/difflock/releases/tag/v0.2.1
