@@ -8,7 +8,9 @@ use Difflock\Console\Commands\CheckCommand;
 use Difflock\Console\Commands\DiffCommand;
 use Difflock\Console\Commands\DifflockCommand;
 use Difflock\Console\Commands\DoctorCommand;
+use Difflock\Console\Commands\ExplainCommand;
 use Difflock\Console\Commands\LintCommand;
+use Difflock\Console\Commands\McpCommand;
 use Difflock\Console\Commands\MigrateCommand;
 use Difflock\Console\Commands\ReportCommand;
 use Difflock\Contracts\MigrationAnalyzer;
@@ -172,7 +174,9 @@ final class DifflockServiceProvider extends ServiceProvider
             CheckCommand::class,
             DiffCommand::class,
             DoctorCommand::class,
+            ExplainCommand::class,
             LintCommand::class,
+            McpCommand::class,
             MigrateCommand::class,
             ReportCommand::class,
         ]);

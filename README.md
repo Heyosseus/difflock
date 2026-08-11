@@ -582,6 +582,45 @@ use Difflock\Database\FixedTableStatistics;
 $statistics = new FixedTableStatistics(['orders' => 8_421_392]);
 ```
 
+## AI agents
+
+An agent writing a migration cannot see what Difflock can see. It does not know the table has eight million rows, that two indexes are built on the column it is about to drop, or that the schema drifted last Tuesday. So it writes the migration that passes review and takes production down — the same failure as always, generated faster.
+
+Difflock ships an MCP server that closes the loop.
+
+```jsonc
+// .mcp.json — Claude Code, Cursor, Laravel Boost, anything speaking MCP
+{
+  "mcpServers": {
+    "difflock": { "command": "php", "args": ["artisan", "difflock:mcp"] }
+  }
+}
+```
+
+Three tools, in the order a careful developer would use them:
+
+| Tool | Answers |
+| --- | --- |
+| `difflock_table_context` | What does this table look like — rows, columns, indexes, foreign keys? |
+| `difflock_lint_migration` | I just wrote this migration; what is wrong with it? |
+| `difflock_schema_drift` | Has this database already diverged from the baseline? |
+
+It is a **standalone stdio server**, not a Boost plugin. Boost publishes no documented API for third-party tool registration, and writing against an undocumented internal is how a package breaks on someone else's patch release. This works with Boost and with everything else.
+
+### A skill for coding agents
+
+`skills/difflock/SKILL.md` teaches an agent the workflow — check the table, write the migration, lint it, fix, *then* show the user — and the things it must not do, such as silencing a finding to make a check pass. Copy it into `.claude/skills/`.
+
+### `difflock:explain`
+
+```bash
+php artisan difflock:explain 2026_08_11_120000_drop_legacy_token
+```
+
+A Markdown briefing on one migration: what it touches, the live state of every table involved, every finding, and what the analysis could not see.
+
+**Nothing in it is generated.** This does not ask a language model whether your migration is safe — that would be the unfalsifiable guessing this package exists to argue against. Difflock supplies the facts; you or your agent supply the judgement. No API key, no network call, no model provider in a package whose whole argument is that it only says what it can check.
+
 ## Programmatic API
 
 ```php
