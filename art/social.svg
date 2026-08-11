@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Difflock — diff, analyze and protect your Laravel database schema">
+  <title>Difflock</title>
+  <defs>
+    <linearGradient id="difflock-rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="45%" stop-color="#ff9f5a"/>
+      <stop offset="75%" stop-color="#f2c14e"/>
+      <stop offset="100%" stop-color="#5ed49a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#14161a"/>
+  <rect width="1200" height="5" fill="url(#difflock-rule)"/>
+
+  <text x="80" y="150" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, sans-serif"
+        font-size="78" font-weight="800" letter-spacing="-2" fill="#ffffff">Difflock</text>
+  <text x="80" y="196" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, sans-serif"
+        font-size="25" fill="#8a929f">Diff, analyze and protect your Laravel database schema.</text>
+
+  <rect x="80" y="248" width="1040" height="196" rx="12" fill="#1b1e24" stroke="#2b3038"/>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17">
+    <text x="106" y="284" fill="#7c8593">Schema::table('users', function (Blueprint $table) {</text>
+    <text x="106" y="314" fill="#e8ebf0">    $table-&gt;dropColumn('legacy_token');</text>
+    <text x="106" y="344" fill="#7c8593">});</text>
+  </g>
+
+  <line x1="106" y1="372" x2="1094" y2="372" stroke="#2b3038"/>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="17">
+    <text x="106" y="406" fill="#ff6b6b" font-weight="700">✗ CRITICAL</text>
+    <text x="222" y="406" fill="#e8ebf0">DROP COLUMN users.legacy_token</text>
+    <text x="560" y="406" fill="#7c8593">· 82,325 rows · not reversible</text>
+  </g>
+
+  <g font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, sans-serif" font-size="30" font-weight="600">
+    <text x="80" y="512" fill="#ffffff">The migration that passes code review</text>
+    <text x="80" y="552" fill="#ff6b6b">and drops a production column.</text>
+  </g>
+
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18" fill="#7c8593">
+    <text x="80" y="600">composer require heyosseus/difflock --dev</text>
+    <text x="1120" y="600" text-anchor="end">MIT · PHP 8.3+ · Laravel 12–13</text>
+  </g>
+</svg>

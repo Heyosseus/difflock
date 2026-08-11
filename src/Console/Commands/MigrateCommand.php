@@ -96,7 +96,7 @@ final class MigrateCommand extends Command
 
         Banner::render($this->output, 'Difflock  ·  Migration Guard');
 
-        $renderer->render($this->output, $decision->report);
+        $this->report($renderer, $decision);
 
         if ($this->option('dry-run') === true) {
             $this->note('Dry run. Nothing was written to the database.');
@@ -115,6 +115,44 @@ final class MigrateCommand extends Command
         }
 
         return $this->migrate($decision);
+    }
+
+    /**
+     * Show what the guard found, in the detail the situation deserves.
+     *
+     * Everywhere else in Difflock a summary is right, because the reader is browsing.
+     * Here they are not: the guard has stopped them writing to a database, and the
+     * findings that caused it are the whole reason to read the output. So a blocked
+     * run prints every blocking finding in full and collapses only the rest.
+     *
+     * When nothing is in scope the renderer is skipped entirely — it would say "no
+     * migrations were found to analyse" and suggest fixing `--path`, which on an
+     * application whose migrations have all simply been applied is untrue.
+     */
+    private function report(ReportRenderer $renderer, GuardDecision $decision): void
+    {
+        if ($decision->report->migrations === []) {
+            $this->note('No migrations are pending, so there was nothing to analyse.');
+
+            return;
+        }
+
+        if (! $decision->blocked) {
+            $renderer->render($this->output, $decision->report, 'difflock:migrate');
+
+            return;
+        }
+
+        $blocking = $decision->report->only(atLeast: $decision->threshold);
+
+        $renderer->detail($this->output, $blocking);
+
+        $remaining = $decision->report->summary()->total - $blocking->summary()->total;
+
+        if ($remaining > 0) {
+            $this->note($remaining.' further finding'.($remaining === 1 ? '' : 's').' below '
+                .$decision->threshold->label().' are not shown — php artisan difflock:lint');
+        }
     }
 
     /**

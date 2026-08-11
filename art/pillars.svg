@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="236" viewBox="0 0 920 236" role="img" aria-label="Difflock's three jobs: diff what changed, analyze the risk, lock dangerous changes">
+  <title>Diff · Analyze · Lock</title>
+
+  <rect width="920" height="236" rx="10" fill="#14161a"/>
+
+  <g font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, Roboto, sans-serif">
+    <g>
+      <rect x="24" y="26" width="280" height="184" rx="10" fill="#1b1e24" stroke="#2b3038"/>
+      <rect x="24" y="26" width="280" height="3" rx="1.5" fill="#5aa9e6"/>
+      <text x="48" y="68" font-size="19" font-weight="700" fill="#ffffff">DIFF</text>
+      <text x="48" y="98" font-size="14" fill="#dfe3e9">What changed?</text>
+      <text x="48" y="126" font-size="13" fill="#8a929f">Compare the live schema against</text>
+      <text x="48" y="146" font-size="13" fill="#8a929f">a committed baseline, or another</text>
+      <text x="48" y="166" font-size="13" fill="#8a929f">connection.</text>
+      <text x="48" y="194" font-size="12.5" fill="#5aa9e6" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">difflock:diff</text>
+    </g>
+
+    <g>
+      <rect x="320" y="26" width="280" height="184" rx="10" fill="#1b1e24" stroke="#2b3038"/>
+      <rect x="320" y="26" width="280" height="3" rx="1.5" fill="#f2c14e"/>
+      <text x="344" y="68" font-size="19" font-weight="700" fill="#ffffff">ANALYZE</text>
+      <text x="344" y="98" font-size="14" fill="#dfe3e9">Is it risky?</text>
+      <text x="344" y="126" font-size="13" fill="#8a929f">Eleven rules, weighed against</text>
+      <text x="344" y="146" font-size="13" fill="#8a929f">real row counts and the indexes</text>
+      <text x="344" y="166" font-size="13" fill="#8a929f">that actually exist.</text>
+      <text x="344" y="194" font-size="12.5" fill="#f2c14e" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">difflock:lint</text>
+    </g>
+
+    <g>
+      <rect x="616" y="26" width="280" height="184" rx="10" fill="#1b1e24" stroke="#2b3038"/>
+      <rect x="616" y="26" width="280" height="3" rx="1.5" fill="#ff6b6b"/>
+      <text x="640" y="68" font-size="19" font-weight="700" fill="#ffffff">LOCK</text>
+      <text x="640" y="98" font-size="14" fill="#dfe3e9">Should it run?</text>
+      <text x="640" y="126" font-size="13" fill="#8a929f">Refuse to migrate when</text>
+      <text x="640" y="146" font-size="13" fill="#8a929f">something destructive is</text>
+      <text x="640" y="166" font-size="13" fill="#8a929f">about to run unattended.</text>
+      <text x="640" y="194" font-size="12.5" fill="#ff6b6b" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">difflock:migrate</text>
+    </g>
+  </g>
+</svg>

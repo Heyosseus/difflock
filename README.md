@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="art/social.svg" alt="Difflock — diff, analyze and protect your Laravel database schema" width="100%">
+</p>
+
 # Difflock
 
 [![Latest Version](https://img.shields.io/packagist/v/heyosseus/difflock.svg)](https://packagist.org/packages/heyosseus/difflock)
@@ -9,38 +13,11 @@
 
 Difflock reads your migrations and your database, tells you what is about to change, how badly it could go, and stops the changes that should not run unattended.
 
-```
-Diff what changed.  Analyze the risk.  Lock dangerous changes.
-```
+<img src="art/pillars.svg" alt="Difflock's three jobs: diff what changed, analyze the risk, lock dangerous changes" width="100%">
 
 ```bash
 composer require heyosseus/difflock --dev
 php artisan difflock:lint
-```
-
-```text
-  Difflock  ·  Migration Analysis
-  ────────────────────────────────────────
-
-  2026_08_10_120000_remove_legacy_token
-
-    ✗ CRITICAL DROP COLUMN users.legacy_token
-      drop-column:14  ·  destructive, not reversible
-      Dropping a column destroys the values in it. A `down()` that adds the
-      column back gives you the column and not one row of what was in it.
-      The table holds 4,921,000 rows.
-      → Stop reading and writing the column in application code first,
-      deploy that, and drop it in a later migration once you are sure
-      nothing needs it.
-
-  Risk
-    ✓ Safe:      0
-    ⚠ Low:       1
-    ⚠ Medium:    0
-    ✗ High:      0
-    ✗ Critical:  1
-
-  3 migrations analysed.
 ```
 
 ---
@@ -70,21 +47,7 @@ php artisan difflock:lint
 
 ## Overview
 
-Difflock has three jobs, and it keeps them separate.
-
-```text
-                    DIFFLOCK
-                       │
-          ┌────────────┼────────────┐
-          │            │            │
-         DIFF        ANALYZE       LOCK
-          │            │            │
-     What changed?  Is it risky?  Should it run?
-          │            │            │
-          └────────────┼────────────┘
-                       │
-                    DATABASE
-```
+Difflock has three jobs, and it keeps them separate. The diff engine does not know how findings are rendered; the rules do not know Artisan exists; the guard consumes analysis rather than repeating it. [Architecture tests](tests/ArchTest.php) enforce each of those boundaries.
 
 | Command | Answers |
 | --- | --- |
@@ -241,6 +204,10 @@ php artisan difflock:lint --all      # every migration file
 php artisan difflock:lint --accept   # record what it found as accepted
 php artisan difflock:lint --path=database/migrations/legacy
 ```
+
+<img src="art/terminal.svg" alt="difflock:lint output — 14 critical and 125 high findings across 170 migrations, summarised on one screen" width="100%">
+
+*Real output from a 170-migration production application: 251 findings on one screen. The summary's length does not grow with the number of findings — `-v` expands every one, `--rule=` takes them a rule at a time.*
 
 Only pending migrations are analysed by default. A migration that has already run cannot be made safer by a finding, and a build that fails over a drop committed two years ago is a build nobody keeps green.
 

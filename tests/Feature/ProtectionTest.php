@@ -184,6 +184,8 @@ describe('difflock:migrate', function (): void {
         [$exit, $output] = runCommand('difflock:migrate', ['--path' => ['/definitely/not/a/directory'], '--realpath' => true]);
 
         expect($exit)->toBe(0)
-            ->and($output)->toContain('No migrations were found to analyse');
+            // The guard says nothing is pending — not that it could not find any
+            // migration files, which would send the reader debugging their --path.
+            ->and($output)->toContain('No migrations are pending');
     });
 });
