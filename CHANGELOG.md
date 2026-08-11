@@ -5,6 +5,28 @@ All notable changes to `difflock` are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.0 - 2026-08-11
+
+Output density. `difflock:lint` printed **693 lines** against a real 170-migration
+application, and output that long is not read — it is scrolled past, which makes the
+findings in it worth nothing however correct they are.
+
+### Changed
+
+- **`difflock:lint` summarises by default.** A count per risk level with the rules contributing to each, the worst few findings, and where to find the rest. Its length does not depend on how many findings there are.
+- **`-v` shows every finding**, grouped by rule so a shared explanation is printed once for the whole group rather than once per finding.
+- **Rules keep per-occurrence facts out of their explanations.** Row counts, index names, dependent foreign keys and index read counts moved to a new `context` field on the finding. This is what makes the grouping work: when `drop-column` appended each table's row count to its paragraph, every finding became a group of one.
+
+### Added
+
+- `MigrationFinding` gains an optional `context` — a short phrase about *this* occurrence, such as `82,325 rows` or `covered by users_email_index`. Additive to the constructor and to the `--format=json` document.
+
+### Note
+
+The risk tally, the accepted-findings count, the unreachable-database notice and the
+parser warnings appear in **both** modes. Abbreviating those is how a summary becomes
+a lie, so they are never dropped.
+
 ## 0.3.0 - 2026-08-11
 
 ### Added
@@ -83,6 +105,7 @@ contracts to settle before 1.0 rather than after it.
 
 - **`unindexed-foreign-key`** catches the most common Laravel/PostgreSQL performance bug — PostgreSQL creates no index for the column a foreign key points from, and MySQL does. The rule is engine-aware and says nothing where the engine handles it.
 
+[0.4.0]: https://github.com/Heyosseus/difflock/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Heyosseus/difflock/releases/tag/v0.3.0
 [0.2.1]: https://github.com/Heyosseus/difflock/releases/tag/v0.2.1
 [0.2.0]: https://github.com/Heyosseus/difflock/releases/tag/v0.2.0
