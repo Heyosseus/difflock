@@ -10,6 +10,7 @@ use Difflock\Console\Commands\DifflockCommand;
 use Difflock\Console\Commands\DoctorCommand;
 use Difflock\Console\Commands\LintCommand;
 use Difflock\Console\Commands\MigrateCommand;
+use Difflock\Console\Commands\ReportCommand;
 use Difflock\Contracts\MigrationAnalyzer;
 use Difflock\Contracts\MigrationRule;
 use Difflock\Contracts\SchemaDiffer;
@@ -173,6 +174,7 @@ final class DifflockServiceProvider extends ServiceProvider
             DoctorCommand::class,
             LintCommand::class,
             MigrateCommand::class,
+            ReportCommand::class,
         ]);
 
         $this->publishes([

@@ -15,6 +15,8 @@ use Difflock\Diff\SchemaDiff;
 use Difflock\Exceptions\InvalidSnapshot;
 use Difflock\Exceptions\MissingBaseline;
 use Difflock\Schema\Baseline;
+use Difflock\Schema\DatabaseSchema;
+use Difflock\Support\SecretHeuristics;
 use Illuminate\Console\Command;
 use Illuminate\Contracts\Config\Repository;
 use Throwable;
@@ -145,6 +147,8 @@ final class DiffCommand extends Command
         $this->output->writeln('  <fg=green>✓</> Baseline recorded: '.$tables.' table'
             .($tables === 1 ? '' : 's').'.');
 
+        $this->warnAboutSecrets($schema);
+
         foreach (Text::wrap('Written to '.$baseline->path().'. Commit it, and future runs of '
             .'difflock:diff will report anything that no longer matches.', '    ') as $line) {
             $this->output->writeln('<fg=gray>'.$line.'</>');
@@ -153,6 +157,40 @@ final class DiffCommand extends Command
         $this->output->writeln('');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Say so before a column default that looks like a credential goes into git.
+     *
+     * Printed after the file is written rather than before, and it does not refuse:
+     * these are shapes, not certainties, and a tool that blocked on a heuristic
+     * would be wrong often enough to be turned off. Deleting the file and setting
+     * `snapshot.defaults` is a ten-second fix — noticing a year later is not.
+     */
+    private function warnAboutSecrets(DatabaseSchema $schema): void
+    {
+        $suspects = SecretHeuristics::suspects($schema);
+
+        if ($suspects === []) {
+            return;
+        }
+
+        $this->output->writeln('');
+        $this->output->writeln('  <fg=yellow>⚠</> '.count($suspects).' column default'
+            .(count($suspects) === 1 ? '' : 's').' in this file look like they may hold a credential:');
+
+        foreach (SecretHeuristics::describe($suspects) as $described) {
+            $this->output->writeln('    <fg=yellow>·</> '.$described);
+        }
+
+        foreach (Text::wrap(
+            'Difflock recognises shapes, not secrets, so check before you commit. To keep defaults out '
+                .'of the baseline entirely, set `snapshot.defaults` to false in config/difflock.php and '
+                .'record it again.',
+            '    ',
+        ) as $line) {
+            $this->output->writeln('<fg=gray>'.$line.'</>');
+        }
     }
 
     private function connection(string $option): ?string
