@@ -9,39 +9,16 @@
 
 Difflock reads your migrations and your database, tells you what is about to change, how badly it could go, and stops the changes that should not run unattended.
 
-```
-Diff what changed.  Analyze the risk.  Lock dangerous changes.
-```
+<img src="art/pillars.svg" alt="Difflock's three jobs: diff what changed, analyze the risk, lock dangerous changes" width="100%">
 
 ```bash
 composer require heyosseus/difflock --dev
 php artisan difflock:lint
 ```
 
-```text
-  Difflock  ·  Migration Analysis
-  ────────────────────────────────────────
+<img src="art/terminal.svg" alt="difflock:lint output — 14 critical and 125 high findings across 170 migrations, summarised in twenty lines" width="100%">
 
-  2026_08_10_120000_remove_legacy_token
-
-    ✗ CRITICAL DROP COLUMN users.legacy_token
-      drop-column:14  ·  destructive, not reversible
-      Dropping a column destroys the values in it. A `down()` that adds the
-      column back gives you the column and not one row of what was in it.
-      The table holds 4,921,000 rows.
-      → Stop reading and writing the column in application code first,
-      deploy that, and drop it in a later migration once you are sure
-      nothing needs it.
-
-  Risk
-    ✓ Safe:      0
-    ⚠ Low:       1
-    ⚠ Medium:    0
-    ✗ High:      0
-    ✗ Critical:  1
-
-  3 migrations analysed.
-```
+*Real output from a 170-migration production application. 251 findings, one screen — `-v` for all of them, `--rule=` for one at a time.*
 
 ---
 

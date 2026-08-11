@@ -37,8 +37,13 @@ final readonly class CheckupRenderer
             $this->diffs->render($output, $result->drift);
         }
 
-        if (! $terse || $result->report->fails($result->threshold)) {
-            $this->reports->render($output, $result->report);
+        // Nothing in scope is already stated by the migration line above. Letting the
+        // report renderer speak here would have it say "no migrations were found to
+        // analyse" and suggest fixing `--path` — which on an application whose 170
+        // migrations have simply all been applied is false, and sends the reader
+        // debugging something that is not wrong.
+        if ($result->report->migrations !== [] && (! $terse || $result->report->fails($result->threshold))) {
+            $this->reports->render($output, $result->report, 'difflock:check');
         }
 
         $output->writeln($result->failed()
@@ -75,7 +80,7 @@ final readonly class CheckupRenderer
         if ($summary->total > 0) {
             $worst = $summary->highest;
 
-            $this->reports->render($output, $result->report->only(atLeast: $worst));
+            $this->reports->render($output, $result->report->only(atLeast: $worst), 'difflock:lint');
 
             $remaining = $summary->total - $summary->count($worst);
 
