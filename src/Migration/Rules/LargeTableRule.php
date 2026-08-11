@@ -48,18 +48,18 @@ final class LargeTableRule implements MigrationRule
         return [$context->finding(
             rule: $this->identifier(),
             risk: RiskLevel::Medium,
-            message: 'ALTER on a large table: '.($table ?? '<unresolved>')
-                .' ('.$context->database->describeSize($table).')',
-            explanation: 'The table is above the size Difflock is configured to treat as large'
-                .($bytes === null ? '' : ', and occupies about '.Bytes::human($bytes))
-                .'. Any statement that rewrites it, scans it, or holds a lock on it is felt for as '
-                .'long as that takes — how long, and what is blocked meanwhile, depends on the '
-                .'engine and version rather than on anything visible in the migration.',
+            message: 'ALTER on a large table: '.($table ?? '<unresolved>'),
+            explanation: 'The table is above the size Difflock is configured to treat as large. Any '
+                .'statement that rewrites it, scans it, or holds a lock on it is felt for as long as '
+                .'that takes — how long, and what is blocked meanwhile, depends on the engine and '
+                .'version rather than on anything visible in the migration.',
             suggestion: 'Read the other findings for this migration with the size in mind, and '
                 .'consider running the statement outside the deploy window.',
             subject: $table,
             subjectType: Subject::Table,
             reversible: $context->reversible(),
+            context: $context->database->describeSize($table)
+                .($bytes === null ? '' : ' · about '.Bytes::human($bytes)),
         )];
     }
 }

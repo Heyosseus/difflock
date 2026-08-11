@@ -12,6 +12,7 @@ use Difflock\Migration\Parser\Operation;
 use Difflock\Migration\Subject;
 use Difflock\Migration\Thresholds;
 use Difflock\Risk\RiskLevel;
+use Difflock\Schema\Index;
 
 /**
  * `dropIndex()`, `dropUnique()`, `dropPrimary()`.
@@ -81,9 +82,22 @@ final class DropIndexRule implements MigrationRule
             ? 'This removes a constraint the database was enforcing. Rows that would have been '
                 .'rejected a moment ago are now accepted, and restoring the constraint later means '
                 .'finding and resolving whatever got in while it was gone.'
-            : $this->usage($context, $scans);
+            : $this->usage($scans);
 
-        $explanation .= $this->covered($context, $operation);
+        $facts = [];
+
+        if ($scans !== null) {
+            $window = $context->database->indexObservedDays();
+
+            $facts[] = Thresholds::format($scans).' read'.($scans === 1 ? '' : 's')
+                .($window === null ? '' : ' in '.$window.' day'.($window === 1 ? '' : 's'));
+        }
+
+        $covered = $this->covered($context, $operation);
+
+        if ($covered !== '') {
+            $facts[] = $covered;
+        }
 
         return $context->finding(
             rule: $this->identifier(),
@@ -96,6 +110,7 @@ final class DropIndexRule implements MigrationRule
             subjectType: Subject::Index,
             reversible: $context->reversible(),
             operation: $operation,
+            context: $facts === [] ? null : implode(' · ', $facts),
         );
     }
 
@@ -106,7 +121,7 @@ final class DropIndexRule implements MigrationRule
      * without one is uninterpretable — zero reads since a restart an hour ago is not
      * evidence of anything.
      */
-    private function usage(MigrationContext $context, ?int $scans): string
+    private function usage(?int $scans): string
     {
         if ($scans === null) {
             return 'The engine would not say how often this index has been read, so Difflock cannot '
@@ -114,21 +129,18 @@ final class DropIndexRule implements MigrationRule
                 .'around it will be planned differently once it is gone.';
         }
 
-        $window = $context->database->indexObservedDays();
-        $over = $window === null
-            ? 'since the engine last reset its statistics'
-            : 'over the '.$window.' day'.($window === 1 ? '' : 's').' since the engine last reset its statistics';
-
+        // Invariant per branch: the count and its window are facts about this index
+        // and live on the context line, so a hundred unused indexes share one
+        // paragraph rather than printing a hundred near-identical ones.
         if ($scans === 0) {
-            return 'The engine reports this index has been read '.($window === null ? 'no times ' : 'no times ')
-                .$over.'. That is the strongest evidence available that nothing needs it — with two '
-                .'caveats: the counters are per instance, so a replica serving reads is invisible '
-                .'from here, and a short window since a restart proves nothing.';
+            return 'The engine reports no reads of this index since it last reset its statistics. '
+                .'That is the strongest evidence available that nothing needs it — with two caveats: '
+                .'the counters are per instance, so a replica serving reads is invisible from here, '
+                .'and a short window since a restart proves nothing.';
         }
 
-        return 'The engine reports this index has been read '.Thresholds::format($scans).' time'
-            .($scans === 1 ? '' : 's').' '.$over.'. Something is using it, and those queries will be '
-            .'planned differently once it is gone.';
+        return 'The engine reports this index is being read. Something is using it, and those queries '
+            .'will be planned differently once it is gone.';
     }
 
     private function suggestion(bool $constraint, ?int $scans): string
@@ -158,10 +170,10 @@ final class DropIndexRule implements MigrationRule
         $name = $operation->stringArgument(0);
         $index = $name === null ? null : $context->liveTable()?->index($name);
 
-        if (! $index instanceof \Difflock\Schema\Index) {
+        if (! $index instanceof Index) {
             return '';
         }
 
-        return ' It currently covers ('.implode(', ', $index->columns).').';
+        return 'covers ('.implode(', ', $index->columns).')';
     }
 }

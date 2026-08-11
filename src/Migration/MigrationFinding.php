@@ -32,6 +32,11 @@ final readonly class MigrationFinding
      * @param  string|null  $subject  The column, index or constraint the finding is about.
      * @param  bool  $conditional  Whether the operation sits inside an `if` or a loop, so it
      *                             may not run at all. The message is phrased accordingly.
+     * @param  string|null  $context  A short phrase about *this* occurrence — `82,325 rows`,
+     *                                `covered by users_email_index`. Everything that varies
+     *                                between two findings of the same rule belongs here, so
+     *                                that the explanation can stay invariant and be printed
+     *                                once for the whole group instead of once per finding.
      */
     public function __construct(
         public string $rule,
@@ -47,6 +52,7 @@ final readonly class MigrationFinding
         public bool $reversible = true,
         public ?int $line = null,
         public bool $conditional = false,
+        public ?string $context = null,
     ) {}
 
     /**
@@ -95,6 +101,7 @@ final readonly class MigrationFinding
             'reversible' => $this->reversible,
             'conditional' => $this->conditional,
             'line' => $this->line,
+            'context' => $this->context,
         ];
 
         if ($this->subject !== null && $this->subjectType !== Subject::None) {

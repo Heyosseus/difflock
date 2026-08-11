@@ -64,20 +64,29 @@ final class DropColumnRule implements MigrationRule
     {
         $table = $context->tableName() ?? '<unresolved>';
 
+        // Invariant: the same sentence for every dropped column, so the renderer can
+        // print it once for the whole group. Everything specific to *this* column —
+        // how many rows, what is built on it — goes in the context line.
         $explanation = 'Dropping a column destroys the values in it. A `down()` that adds the column '
             .'back gives you the column and not one row of what was in it.';
+
+        if (str_starts_with($operation->method, 'dropConstrainedForeignId')) {
+            $explanation .= ' This form also drops the foreign key constraint on the column, so '
+                .'anything relying on it for referential integrity loses it.';
+        }
+
+        $facts = [];
 
         $size = $context->database->describeSize($context->tableName());
 
         if ($size !== null) {
-            $explanation .= ' The table holds '.$size.'.';
+            $facts[] = $size;
         }
 
-        $explanation .= $this->dependants($context->liveTable(), $column);
+        $dependants = $this->dependants($context->liveTable(), $column);
 
-        if (str_starts_with($operation->method, 'dropConstrainedForeignId')) {
-            $explanation .= ' This also drops the foreign key constraint on the column, so anything '
-                .'relying on that constraint for referential integrity loses it.';
+        if ($dependants !== '') {
+            $facts[] = $dependants;
         }
 
         return $context->finding(
@@ -92,6 +101,7 @@ final class DropColumnRule implements MigrationRule
             destructive: true,
             reversible: false,
             operation: $operation,
+            context: $facts === [] ? null : implode(' · ', $facts),
         );
     }
 
@@ -123,20 +133,20 @@ final class DropColumnRule implements MigrationRule
             }
         }
 
-        $notes = '';
+        $notes = [];
 
         if ($indexes !== []) {
-            $notes .= ' It is covered by '.$this->list(array_map(
+            $notes[] = 'covered by '.$this->list(array_map(
                 static fn (Index $index): string => $index->name,
                 $indexes,
-            )).', which the drop takes with it.';
+            ));
         }
 
         if ($keys !== []) {
-            $notes .= ' The foreign key '.$this->list($keys).' is built on it.';
+            $notes[] = 'foreign key '.$this->list($keys).' built on it';
         }
 
-        return $notes;
+        return implode(', ', $notes);
     }
 
     private function unresolved(MigrationContext $context, Operation $operation): MigrationFinding

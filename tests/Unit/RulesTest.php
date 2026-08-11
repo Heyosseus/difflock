@@ -47,19 +47,19 @@ describe('drop-table', function (): void {
             ['orders' => 8_421_392],
         ));
 
-        expect($findings[0]->explanation)->toContain('8,421,392 rows');
+        expect($findings[0]->context)->toContain('8,421,392 rows');
     });
 
     it('says when the database could not be reached', function (): void {
         $context = contextFor(parseUp("Schema::drop('orders');"), available: false);
 
-        expect(run(new DropTableRule, $context)[0]->explanation)
-            ->toContain('could not be reached');
+        expect(run(new DropTableRule, $context)[0]->context)
+            ->toContain('unreachable');
     });
 
     it('says when the table is not on the inspected database', function (): void {
-        expect(run(new DropTableRule, ruleContext("Schema::drop('orders');"))[0]->explanation)
-            ->toContain('does not exist on the inspected database');
+        expect(run(new DropTableRule, ruleContext("Schema::drop('orders');"))[0]->context)
+            ->toContain('not present on the inspected database');
     });
 
     it('reports dropping every table', function (): void {
@@ -128,7 +128,7 @@ describe('drop-column', function (): void {
             ['orders' => 12],
         ));
 
-        expect($findings[0]->explanation)
+        expect($findings[0]->context)
             ->toContain('orders_customer_id_index')
             ->toContain('orders_customer_id_foreign')
             ->toContain('12 rows');
@@ -360,7 +360,7 @@ describe('add-not-null-column', function (): void {
 
         expect($findings[0]->risk)->toBe(RiskLevel::High)
             ->and($findings[0]->message)->toBe('ADD NOT NULL COLUMN users.status with no default')
-            ->and($findings[0]->explanation)->toContain('4,000 rows');
+            ->and($findings[0]->context)->toContain('4,000 rows');
     });
 
     it('is low on an empty table', function (): void {
@@ -454,7 +454,7 @@ describe('add-index', function (): void {
             "Schema::table('orders', fn (Blueprint \$t) => \$t->index('customer_id'));",
         ));
 
-        expect($findings[0]->explanation)->toContain('could not be determined')
+        expect($findings[0]->context)->toContain('could not be determined')
             ->and($findings[0]->explanation)->toContain('depends on the database engine');
     });
 
@@ -503,7 +503,7 @@ describe('drop-index', function (): void {
             ['users' => 10],
         ));
 
-        expect($findings[0]->explanation)->toContain('covers (first, last)');
+        expect($findings[0]->context)->toContain('covers (first, last)');
     });
 });
 
@@ -538,7 +538,7 @@ describe('foreign-key', function (): void {
 
         expect($findings)->toHaveCount(1)
             ->and($findings[0]->risk)->toBe(RiskLevel::Medium)
-            ->and($findings[0]->explanation)->toContain('900 rows');
+            ->and($findings[0]->context)->toContain('900 rows');
     });
 
     it('is low for adding a constraint to an empty table', function (): void {
@@ -595,7 +595,7 @@ describe('large-table', function (): void {
         ));
 
         expect($findings[0]->risk)->toBe(RiskLevel::Medium)
-            ->and($findings[0]->message)->toContain('8,421,392 rows')
+            ->and($findings[0]->context)->toContain('8,421,392 rows')
             ->and($findings[0]->explanation)->toContain('depends on the');
     });
 
