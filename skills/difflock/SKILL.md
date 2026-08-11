@@ -17,11 +17,23 @@ wrong is not a style problem; it is how production columns get dropped.
 
 ```
 1. difflock_table_context   →  what am I dealing with?
-2. write the migration
-3. difflock_lint_migration  →  what's wrong with it?
-4. fix and repeat until nothing is above `low`
-5. show the user, quoting anything that remains
+2. draft the migration       (do not write it yet)
+3. difflock_lint_migration with `source`  →  what's wrong with it?
+4. fix the draft, repeat 3, until nothing is above `low`
+5. write the file
+6. show the user, quoting anything that remains
 ```
+
+**Check the draft with `source` before writing it to disk.** `difflock_lint_migration`
+takes the migration code directly, and analyses it against the real database — real
+row counts, real indexes — even though the file does not exist yet. Checking after
+writing means every intermediate mistake lands in the user's repository first.
+
+```
+difflock_lint_migration { "source": "<?php\n\nuse Illuminate\\Database\\Migrations\\Migration;\n..." }
+```
+
+Use `path` only for migrations that already exist.
 
 If the MCP tools are unavailable, the same facts come from the CLI:
 
@@ -66,6 +78,12 @@ Each carries a **risk** (`safe` → `critical`) and two facts that are not opini
 - **Do not report a row count of `null` as zero.** `null` means the engine would
   not say. The distinction is the difference between "nothing to backfill" and "we
   have no idea".
+
+## Explaining a rule
+
+Do not reconstruct what a rule means from its name. Call `difflock_rules` — it
+returns each rule's own documentation, and the registered set is configurable, so a
+project may have rules that were never part of Difflock.
 
 ## Saying it to the user
 

@@ -104,7 +104,7 @@ describe('protocol', function (): void {
             'arguments' => ['path' => 12345],
         ])['result'];
 
-        expect($result['content'][0]['text'])->toContain('A path is required');
+        expect($result['content'][0]['text'])->toContain('Pass either');
     });
 });
 

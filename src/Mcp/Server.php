@@ -87,12 +87,67 @@ final class Server
     }
 
     /**
+     * Run the handler with STDOUT sealed off.
+     *
+     * This is the difference between a server that works and one that dies silently
+     * on somebody else's application. **STDOUT carries the protocol**, and anything
+     * else written to it — a `dd()` left in a model, a deprecation notice from a
+     * config file, a package that echoes during boot — lands in the middle of the
+     * JSON-RPC stream. The client sees malformed JSON, gives up, and the failure
+     * presents as the tools simply not existing. Nobody debugs that quickly.
+     *
+     * A real example, found on a live application: `config/database.php` referencing
+     * `PDO::MYSQL_ATTR_SSL_CA` on PHP 8.5 emits a deprecation notice to STDOUT, and
+     * that alone was enough to make the server mute.
+     *
+     * So every handler runs inside an output buffer. Whatever it prints is captured
+     * and thrown away rather than corrupting the stream, and the protocol frame is
+     * written afterwards by the caller. Output produced *before* this point — during
+     * framework bootstrap — cannot be caught here; {@see \Difflock\Console\Commands\McpCommand}
+     * handles that end.
+     *
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $handler
+     * @return TReturn
+     */
+    private function guarded(callable $handler): mixed
+    {
+        ob_start();
+
+        try {
+            return $handler();
+        } finally {
+            $stray = ob_get_clean();
+
+            if (is_string($stray) && trim($stray) !== '') {
+                // Not silently discarded: an operator debugging a quiet server needs
+                // to know something is writing where it should not.
+                fwrite(STDERR, 'difflock: discarded '.strlen($stray).' bytes written to STDOUT during a '
+                    .'request. Something in this application prints to standard output, which corrupts '
+                    ."the MCP stream.\n");
+            }
+        }
+    }
+
+    /**
      * Handle one line of input, returning the response to write, or null for a
      * notification.
      *
      * @return array<string, mixed>|null
      */
     public function dispatch(string $line): ?array
+    {
+        // The guard lives here rather than in serve() so that it protects every entry
+        // point, not just the one the production transport happens to use. A caller
+        // that dispatches directly deserves the same guarantee.
+        return $this->guarded(fn (): ?array => $this->route($line));
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function route(string $line): ?array
     {
         try {
             $message = json_decode($line, true, 32, JSON_THROW_ON_ERROR);
