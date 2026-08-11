@@ -20,10 +20,6 @@ composer require heyosseus/difflock --dev
 php artisan difflock:lint
 ```
 
-<img src="art/terminal.svg" alt="difflock:lint output — 14 critical and 125 high findings across 170 migrations, summarised in twenty lines" width="100%">
-
-*Real output from a 170-migration production application. 251 findings, one screen — `-v` for all of them, `--rule=` for one at a time.*
-
 ---
 
 ## Contents
@@ -208,6 +204,10 @@ php artisan difflock:lint --all      # every migration file
 php artisan difflock:lint --accept   # record what it found as accepted
 php artisan difflock:lint --path=database/migrations/legacy
 ```
+
+<img src="art/terminal.svg" alt="difflock:lint output — 14 critical and 125 high findings across 170 migrations, summarised on one screen" width="100%">
+
+*Real output from a 170-migration production application: 251 findings on one screen. The summary's length does not grow with the number of findings — `-v` expands every one, `--rule=` takes them a rule at a time.*
 
 Only pending migrations are analysed by default. A migration that has already run cannot be made safer by a finding, and a build that fails over a drop committed two years ago is a build nobody keeps green.
 
