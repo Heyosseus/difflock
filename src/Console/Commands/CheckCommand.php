@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Difflock\Console\Commands;
 
 use Difflock\Checkup;
+use Difflock\CheckupResult;
 use Difflock\Console\Commands\Concerns\InteractsWithDifflock;
 use Difflock\Console\Formatters\JsonReport;
 use Difflock\Console\Renderers\Banner;
@@ -74,7 +75,13 @@ final class CheckCommand extends Command
         $connection = $this->option('connection');
 
         try {
-            $result = $checkup->run($threshold, is_string($connection) && $connection !== '' ? $connection : null);
+            $result = $this->whileWorking(
+                'Reading the schema and analysing migrations',
+                fn (): CheckupResult => $checkup->run(
+                    $threshold,
+                    is_string($connection) && $connection !== '' ? $connection : null,
+                ),
+            );
         } catch (Throwable $exception) {
             $this->components->error('Difflock could not complete the check: '.$exception->getMessage());
 

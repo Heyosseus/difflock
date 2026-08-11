@@ -89,6 +89,39 @@ trait InteractsWithDifflock
     }
 
     /**
+     * Run something slow, saying so while it runs.
+     *
+     * Reading a large schema is a few hundred queries and several seconds of silence,
+     * which is long enough for somebody to wonder whether the command has hung. The
+     * notice is written and then erased, so it exists only while the work does.
+     *
+     * Only on a decorated terminal: a CI log has no cursor to move, a JSON document
+     * must not gain a line, and a test buffer should assert on the report rather than
+     * on the reassurance.
+     *
+     * @template TResult
+     *
+     * @param  callable(): TResult  $work
+     * @return TResult
+     */
+    protected function whileWorking(string $message, callable $work): mixed
+    {
+        if (! $this->output->isDecorated() || $this->wantsJson()) {
+            return $work();
+        }
+
+        $this->output->write('  <fg=gray>'.$message.'…</>');
+
+        try {
+            return $work();
+        } finally {
+            // Back to the start of the line, blank it, and back again — so whatever
+            // prints next starts on a clean line rather than after the notice.
+            $this->output->write("\r".str_repeat(' ', mb_strlen($message) + 4)."\r");
+        }
+    }
+
+    /**
      * @return list<string>
      */
     protected function paths(): array

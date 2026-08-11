@@ -100,7 +100,10 @@ final class LintCommand extends Command
         $scope = $this->option('all') === true ? MigrationScope::All : MigrationScope::Pending;
         $paths = $this->paths();
 
-        $report = $analyzer->analyze($scope, $paths);
+        $report = $this->whileWorking(
+            'Analysing migrations',
+            fn (): MigrationReport => $analyzer->analyze($scope, $paths),
+        );
 
         // Nothing pending is the ordinary state of a machine that is up to date, and
         // printing nothing there is how a useful tool gets mistaken for a broken one.
