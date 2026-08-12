@@ -55,7 +55,7 @@ jobs:
           coverage: ${{ matrix.coverage && 'pcov' || 'none' }}
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/composer
           key: composer-${{ matrix.php }}-${{ matrix.laravel }}-${{ hashFiles('composer.json') }}
